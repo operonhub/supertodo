@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Todo — Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        verde:   { DEFAULT: '#1B5E3B', dark: '#12432A', soft: '#E8F1EA' },
+        dorado:  { DEFAULT: '#F2C230', soft: '#FCF3D7', dark: '#8A6B00' },
+        crema:   '#FAF6ED',
+        rojo:    '#D93B3B',
+        wsp:     '#25D366',
+      },
+      fontFamily: {
+        sans: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        card: '0 1px 3px rgba(18,67,42,.06), 0 6px 20px rgba(18,67,42,.07)',
+        phone: '0 30px 80px rgba(18,67,42,.30), 0 8px 24px rgba(18,67,42,.18)',
+      },
+    }
+  }
+}
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  html { font-optical-sizing: auto; }
+  body { -webkit-font-smoothing: antialiased; }
+  .precio { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+  /* ---- vistas / tabs ---- */
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn .35s cubic-bezier(.22,.8,.36,1) both; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ---- scrollbars discretos ---- */
+  .scroll-slim::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scroll-slim::-webkit-scrollbar-thumb { background: rgba(27,94,59,.18); border-radius: 99px; }
+  .scroll-slim::-webkit-scrollbar-track { background: transparent; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+
+  /* ---- bottom sheet ---- */
+  #sheet-overlay { transition: opacity .3s ease; }
+  #sheet { transition: transform .38s cubic-bezier(.22,.8,.36,1); }
+
+  /* ---- toggle del panel ---- */
+  .toggle { transition: background-color .25s ease; }
+  .toggle .knob { transition: transform .25s cubic-bezier(.22,.8,.36,1); }
+  .toggle.on { background-color: #1B5E3B; }
+  .toggle.on .knob { transform: translateX(16px); }
+
+  /* ---- cards con lift sutil ---- */
+  .lift { transition: transform .22s ease, box-shadow .22s ease; }
+  .lift:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(28,26,20,.07), 0 14px 32px rgba(28,26,20,.10); }
+
+  /* ---- card CRM seleccionada ---- */
+  .msg-card { transition: border-color .2s ease, box-shadow .2s ease, outline-color .2s ease; }
+  .msg-card.selected { border-color: #1B5E3B; outline: 1px solid #1B5E3B; box-shadow: 0 8px 22px rgba(28,26,20,.12); }
+
+  /* ---- stepper +/− ---- */
+  .add-ctrl button { transition: transform .15s ease, background-color .2s ease; }
+  .add-ctrl button:active { transform: scale(.88); }
+
+  /* ---- clases compuestas ---- */
+  .side-item { display:flex; align-items:center; gap:.65rem; padding:.6rem .9rem; border-radius:.75rem; font-size:.875rem; font-weight:600; color:rgba(255,255,255,.55); white-space:nowrap; cursor:pointer; transition:background-color .18s, color .18s; }
+  .side-item:hover { background:rgba(255,255,255,.07); color:rgba(255,255,255,.85); }
+  .side-item.active, .side-item.active:hover { background:rgba(255,255,255,.12); color:#fff; }
+  /* inputs de configuración */
+  .config-input { width:100%; background:#FAF6ED; border:1px solid rgba(27,94,59,.15); border-radius:.75rem; padding:.6rem .85rem; font-size:.875rem; font-weight:600; color:#1B5E3B; font-family:inherit; outline:none; transition:border-color .18s; }
+  .config-input:focus { border-color:rgba(27,94,59,.5); }
+  /* secciones del panel: solo una visible a la vez */
+  .panel-sec { display:none; animation:viewIn .28s cubic-bezier(.22,.8,.36,1) both; }
+  .panel-sec.active { display:block; }
+  .filter-chip { display:inline-flex; align-items:center; gap:.4rem; flex:none; font-size:.75rem; font-weight:700; padding:.45rem .8rem; border-radius:999px; border:1px solid rgba(27,94,59,.18); background:#fff; color:#1B5E3B; cursor:pointer; transition:all .2s ease; }
+  .filter-chip.active { background:#1B5E3B; color:#fff; border-color:#1B5E3B; }
+  .filter-chip:not(.active):hover { border-color:rgba(27,94,59,.45); }
+</style>
+</head>
+<body class="bg-crema font-sans text-verde-dark min-h-screen">
+
+<!-- ============================================================ -->
+<!-- BARRA SUPERIOR (chrome de la demo)                            -->
+<!-- ============================================================ -->
+<header class="fixed top-0 inset-x-0 z-40 bg-crema/90 backdrop-blur border-b border-verde/10">
+  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+    <!-- Wordmark Super Todo: óvalo tipo insignia -->
+    <svg viewBox="0 0 150 62" class="h-10 w-auto shrink-0" aria-label="Super Todo">
+      <ellipse cx="75" cy="31" rx="72" ry="28" fill="#1B5E3B"/>
+      <ellipse cx="75" cy="31" rx="65" ry="22.5" fill="none" stroke="#F2C230" stroke-width="2.5"/>
+      <text x="75" y="36" text-anchor="middle" fill="#F2C230" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="17" letter-spacing=".5">SUPER TODO</text>
+      <path d="M75 8.5c2.6.2 4.6 1.6 4.9 3.6-2.7.3-4.7-1-4.9-3.6z" fill="#F2C230"/>
+    </svg>
+
+    <!-- Tabs -->
+    <nav class="flex items-center gap-1 mx-auto sm:mx-6 bg-verde/5 rounded-full p-1">
+      <button data-tab="tienda" class="tab-btn px-3 sm:px-5 py-2 rounded-full text-sm font-semibold transition-colors duration-200 flex items-center gap-1.5">
+        <i data-lucide="smartphone" class="w-4 h-4"></i><span class="hidden sm:inline">Tienda</span>
+      </button>
+      <button data-tab="panel" class="tab-btn px-3 sm:px-5 py-2 rounded-full text-sm font-semibold transition-colors duration-200 flex items-center gap-1.5">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i><span class="hidden sm:inline">Panel</span>
+      </button>
+      <button data-tab="mensajes" class="tab-btn px-3 sm:px-5 py-2 rounded-full text-sm font-semibold transition-colors duration-200 flex items-center gap-1.5">
+        <i data-lucide="messages-square" class="w-4 h-4"></i><span class="hidden sm:inline">Mensajes</span>
+      </button>
+    </nav>
+
+    <span class="hidden md:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-verde/60 border border-verde/20 rounded-full px-3 py-1">
+      <span class="w-1.5 h-1.5 rounded-full bg-dorado"></span>DEMO
+    </span>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<!-- VISTA 1 · TIENDA (marco de celular)                           -->
+<!-- ============================================================ -->
+<main id="view-tienda" class="view pt-24 pb-16">
+  <p class="text-center text-sm text-verde/60 mb-6 px-4">Lo que ve tu cliente al entrar desde el link de WhatsApp — sin registrarse ni bajar nada</p>
+
+  <div class="flex justify-center px-3">
+    <!-- Marco del teléfono -->
+    <div class="relative w-full max-w-[390px] bg-[#101613] rounded-[3rem] p-[10px] shadow-phone">
+      <div class="absolute top-[10px] left-1/2 -translate-x-1/2 w-32 h-6 bg-[#101613] rounded-b-2xl z-20"></div>
+
+      <!-- pantalla -->
+      <div class="relative bg-crema rounded-[2.4rem] overflow-hidden h-[760px] max-h-[calc(100vh-180px)] min-h-[560px] flex flex-col">
+
+        <!-- header tienda -->
+        <div class="bg-verde px-4 pt-9 pb-3 shrink-0">
+          <div class="flex items-center justify-between mb-3">
+            <svg viewBox="0 0 150 62" class="h-8 w-auto" aria-label="Super Todo">
+              <ellipse cx="75" cy="31" rx="72" ry="28" fill="#F2C230"/>
+              <ellipse cx="75" cy="31" rx="65" ry="22.5" fill="none" stroke="#1B5E3B" stroke-width="2.5"/>
+              <text x="75" y="36" text-anchor="middle" fill="#1B5E3B" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="17" letter-spacing=".5">SUPER TODO</text>
+            </svg>
+            <span class="text-[10px] font-semibold text-white/75 bg-white/10 rounded-full px-2.5 py-1 flex items-center gap-1">
+              <svg viewBox="0 0 24 24" class="w-3 h-3 fill-dorado"><path d="M12 2l2.9 6.3 6.6.8-4.9 4.5 1.3 6.4L12 16.8 6.1 20l1.3-6.4L2.5 9.1l6.6-.8z"/></svg>
+              4,6 · Monte Chingolo
+            </span>
+          </div>
+          <div class="flex items-center gap-2 bg-white/95 rounded-full px-3.5 py-2.5">
+            <i data-lucide="search" class="w-4 h-4 text-verde/50"></i>
+            <span class="text-sm text-verde/45">Buscar productos…</span>
+          </div>
+        </div>
+
+        <!-- contenido scrolleable -->
+        <div class="flex-1 overflow-y-auto no-scrollbar">
+
+          <!-- chips de categoría -->
+          <div class="flex gap-2 overflow-x-auto no-scrollbar px-4 py-3 snap-x">
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold bg-verde text-white">Todas</button>
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-verde border border-verde/15">Almacén</button>
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-verde border border-verde/15">Bebidas</button>
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-verde border border-verde/15">Lácteos</button>
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-verde border border-verde/15">Fiambrería</button>
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-verde border border-verde/15">Limpieza</button>
+            <button class="snap-start shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-verde border border-verde/15">Catering</button>
+          </div>
+
+          <!-- banner de tanda -->
+          <div class="mx-4 mb-4 rounded-2xl bg-dorado px-4 py-3 flex items-center gap-3">
+            <i data-lucide="zap" class="w-5 h-5 text-verde-dark shrink-0"></i>
+            <p class="text-[13px] font-bold leading-snug text-verde-dark">Ofertas del jueves 6/8 <span class="font-semibold text-verde-dark/70">— válidas hasta las 20h</span></p>
+          </div>
+
+          <!-- grilla de productos (generada por JS para mantener el carrito en sincronía) -->
+          <div class="grid grid-cols-2 gap-3 px-4 pb-32" id="prod-grid"></div>
+        </div>
+
+        <!-- carrito flotante -->
+        <button id="cart-bar" class="absolute bottom-4 left-4 right-4 bg-verde text-white rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-lg hover:bg-verde-dark transition-colors duration-200 z-10">
+          <span class="text-sm font-semibold flex items-center gap-2">
+            <i data-lucide="shopping-basket" class="w-4 h-4"></i>
+            <span id="cart-summary">3 productos · $12.450</span>
+          </span>
+          <span class="text-sm font-bold bg-wsp rounded-full pl-3 pr-3.5 py-1.5 flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" class="w-4 h-4 fill-white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-2.9-1.3-4.8-4.3-5-4.5-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5.2.6.8 2 .9 2.1.1.2.1.3 0 .5-.3.7-.7 1-.5 1.3.7 1.2 1.6 2 2.8 2.6.3.2.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.5-.1 1z"/></svg>
+            Pedir
+          </span>
+        </button>
+
+        <!-- overlay + bottom sheet -->
+        <div id="sheet-overlay" class="absolute inset-0 bg-verde-dark/50 opacity-0 pointer-events-none z-20"></div>
+        <div id="sheet" class="absolute inset-x-0 bottom-0 bg-crema rounded-t-3xl z-30 translate-y-full max-h-[86%] flex flex-col">
+          <div class="w-10 h-1 rounded-full bg-verde/20 mx-auto mt-3 mb-1 shrink-0"></div>
+          <div class="px-5 pb-5 overflow-y-auto no-scrollbar">
+            <h3 class="text-lg font-extrabold mt-1 mb-3">Tu pedido</h3>
+            <div id="sheet-lines" class="space-y-2.5 mb-4"></div>
+
+            <p class="text-[11px] font-bold tracking-wide text-verde/50 uppercase mb-2">Así llega tu mensaje</p>
+            <!-- burbuja estilo WhatsApp -->
+            <div class="relative bg-[#DCF8C6] rounded-2xl rounded-tl-md px-4 py-3 mb-4 shadow-sm">
+              <pre id="wsp-preview" class="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-[#1f2c24]"></pre>
+              <span class="block text-right text-[10px] text-[#1f2c24]/45 mt-1">10:32 ✓✓</span>
+            </div>
+
+            <a id="wsp-send" href="#" target="_blank" rel="noopener" class="w-full bg-wsp hover:bg-[#1fb958] transition-colors duration-200 text-white rounded-2xl py-3.5 font-bold text-[15px] flex items-center justify-center gap-2">
+              <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-2.9-1.3-4.8-4.3-5-4.5-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5.2.6.8 2 .9 2.1.1.2.1.3 0 .5-.3.7-.7 1-.5 1.3.7 1.2 1.6 2 2.8 2.6.3.2.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.5-.1 1z"/></svg>
+              Enviar pedido
+            </a>
+            <p class="text-center text-[11px] text-verde/50 mt-2.5">Retiro por el local · Cnel. Aguilar 3517, Monte Chingolo</p>
+            <p class="text-center text-[11px] text-verde/40 mt-0.5">Hoy abierto de 8 a 13 y de 17 a 21 hs</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- VISTA 2 · PANEL DEL DUEÑO (desktop)                           -->
+<!-- ============================================================ -->
+<main id="view-panel" class="view pt-16">
+  <div class="max-w-[1400px] mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-64px)]">
+
+    <!-- sidebar -->
+    <aside class="lg:w-60 shrink-0 bg-verde-dark text-white lg:min-h-full">
+      <div class="px-5 pt-4 pb-2 lg:pt-6 lg:pb-4">
+        <svg viewBox="0 0 150 62" class="hidden lg:block h-9 w-auto" aria-label="Super Todo">
+          <ellipse cx="75" cy="31" rx="72" ry="28" fill="#F2C230"/>
+          <ellipse cx="75" cy="31" rx="65" ry="22.5" fill="none" stroke="#12432A" stroke-width="2.5"/>
+          <text x="75" y="36" text-anchor="middle" fill="#12432A" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" font-size="17" letter-spacing=".5">SUPER TODO</text>
+        </svg>
+        <!-- en mobile los datos van en una línea; en desktop se apilan bajo el logo -->
+        <p class="text-[11px] text-white/45 lg:mt-2 font-medium leading-relaxed">
+          <span class="lg:block">Cnel. Aguilar 3517</span><span class="lg:hidden"> · </span><span class="lg:block">Monte Chingolo, Lanús</span><span class="lg:hidden"> · </span><span class="lg:block">+54 11 3622-5341</span>
+        </p>
+      </div>
+      <nav class="flex lg:flex-col gap-1 p-3 overflow-x-auto no-scrollbar">
+        <button data-panel="productos" class="side-item"><i data-lucide="package" class="w-4 h-4"></i><span>Productos</span></button>
+        <button data-panel="ofertas" class="side-item active"><i data-lucide="tag" class="w-4 h-4"></i><span>Ofertas del día</span></button>
+        <button data-panel="pedidos" class="side-item"><i data-lucide="clipboard-list" class="w-4 h-4"></i><span>Pedidos</span><span class="ml-auto text-[10px] font-extrabold bg-dorado text-verde-dark rounded-full px-1.5 py-0.5">2</span></button>
+        <button data-panel="catering" class="side-item"><i data-lucide="party-popper" class="w-4 h-4"></i><span>Catering</span></button>
+        <button data-panel="config" class="side-item"><i data-lucide="settings" class="w-4 h-4"></i><span>Configuración</span></button>
+      </nav>
+    </aside>
+
+    <!-- contenido -->
+    <section class="flex-1 p-4 sm:p-6 lg:p-8">
+
+    <!-- ---------- SECCIÓN: OFERTAS DEL DÍA ---------- -->
+    <div id="panel-ofertas" class="panel-sec active">
+      <!-- header -->
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <div class="mr-auto">
+          <h1 class="text-2xl font-extrabold">Ofertas del día</h1>
+          <p class="text-sm text-verde/60 mt-0.5">Jueves 6 de agosto</p>
+        </div>
+        <span class="flex items-center gap-2 bg-white border border-verde/15 rounded-xl px-3.5 py-2 cursor-pointer hover:border-verde/40 transition-colors" title="Copiar link">
+          <span class="text-left leading-tight">
+            <span class="block text-[10px] font-bold uppercase tracking-wide text-verde/45">Tu link para mandar por WhatsApp</span>
+            <span class="block text-sm font-semibold text-verde">supertodo.com.ar/ofertas</span>
+          </span>
+          <i data-lucide="copy" class="w-4 h-4 text-verde/50"></i>
+        </span>
+        <button class="bg-dorado hover:brightness-95 transition text-verde-dark font-extrabold rounded-xl px-5 py-2.5 flex items-center gap-2 shadow-card">
+          <i data-lucide="megaphone" class="w-4 h-4"></i>Publicar tanda
+        </button>
+      </div>
+
+      <!-- stats -->
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Productos en catálogo</p>
+          <p class="precio text-3xl font-extrabold">247</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">En oferta hoy</p>
+          <p class="precio text-3xl font-extrabold text-verde">38</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Pedidos hoy</p>
+          <p class="precio text-3xl font-extrabold">12</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Ticket promedio</p>
+          <p class="precio text-3xl font-extrabold">$14.200</p>
+        </div>
+      </div>
+
+      <!-- dropzone -->
+      <div class="border-2 border-dashed border-verde/25 rounded-2xl bg-verde-soft/40 px-6 py-8 text-center mb-6 hover:border-verde/50 transition-colors cursor-pointer">
+        <i data-lucide="image-up" class="w-7 h-7 text-verde/40 mx-auto mb-2"></i>
+        <p class="font-bold text-verde">Arrastrá tus fotos acá</p>
+        <p class="text-sm text-verde/50 mt-0.5">Sacale una foto a la góndola y la oferta se carga sola</p>
+      </div>
+
+      <!-- tabla de productos -->
+      <div class="bg-white rounded-2xl shadow-card overflow-hidden mb-8">
+        <div class="overflow-x-auto scroll-slim">
+          <table class="w-full text-sm min-w-[680px]">
+            <thead>
+              <tr class="text-left text-xs text-verde/50 border-b border-verde/10">
+                <th class="font-semibold px-5 py-3.5">Producto</th>
+                <th class="font-semibold px-3 py-3.5">Categoría</th>
+                <th class="font-semibold px-3 py-3.5 text-right">Precio normal</th>
+                <th class="font-semibold px-3 py-3.5 text-right">Precio oferta</th>
+                <th class="font-semibold px-3 py-3.5 text-center">En oferta hoy</th>
+                <th class="px-5 py-3.5"></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-productos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- pedidos de hoy -->
+      <h2 class="text-lg font-extrabold mb-3">Pedidos de hoy</h2>
+      <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 pb-10">
+
+        <div class="bg-white rounded-2xl p-4 shadow-card lift">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-bold">Jorge Ferreyra</p>
+            <span class="text-[11px] font-bold text-sky-700 bg-sky-100 rounded-full px-2.5 py-1">Nuevo</span>
+          </div>
+          <p class="text-xs text-verde/50 mb-2">10:47 · 3 items</p>
+          <p class="precio text-xl font-extrabold">$9.150</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 shadow-card lift">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-bold">Diego Sosa</p>
+            <span class="text-[11px] font-bold text-sky-700 bg-sky-100 rounded-full px-2.5 py-1">Nuevo</span>
+          </div>
+          <p class="text-xs text-verde/50 mb-2">11:05 · 2 items</p>
+          <p class="precio text-xl font-extrabold">$6.450</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 shadow-card lift">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-bold">Marcela Domínguez</p>
+            <span class="text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2.5 py-1">Preparando</span>
+          </div>
+          <p class="text-xs text-verde/50 mb-2">10:12 · 8 items</p>
+          <p class="precio text-xl font-extrabold">$18.300</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 shadow-card lift">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-bold">Comedor Los Naranjos</p>
+            <span class="text-[11px] font-bold text-verde bg-verde-soft rounded-full px-2.5 py-1">Listo</span>
+          </div>
+          <p class="text-xs text-verde/50 mb-2">09:30 · 24 items</p>
+          <p class="precio text-xl font-extrabold">$64.700</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 shadow-card lift">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-bold">Valeria Núñez</p>
+            <span class="text-[11px] font-bold text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">Entregado</span>
+          </div>
+          <p class="text-xs text-verde/50 mb-2">08:55 · 5 items</p>
+          <p class="precio text-xl font-extrabold">$11.900</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 shadow-card lift">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-bold">Rosa Benítez</p>
+            <span class="text-[11px] font-bold text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">Entregado</span>
+          </div>
+          <p class="text-xs text-verde/50 mb-2">08:20 · 6 items</p>
+          <p class="precio text-xl font-extrabold">$13.750</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ---------- SECCIÓN: PRODUCTOS ---------- -->
+    <div id="panel-productos" class="panel-sec">
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <div class="mr-auto">
+          <h1 class="text-2xl font-extrabold">Productos</h1>
+          <p class="text-sm text-verde/60 mt-0.5">247 productos en el catálogo</p>
+        </div>
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-verde/40"></i>
+          <input type="text" placeholder="Buscar producto…" class="bg-white border border-verde/15 rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium w-full sm:w-56 outline-none focus:border-verde/40 transition-colors">
+        </div>
+        <button class="bg-verde hover:brightness-110 transition text-white font-extrabold rounded-xl px-5 py-2.5 flex items-center gap-2 shadow-card">
+          <i data-lucide="plus" class="w-4 h-4"></i>Agregar producto
+        </button>
+      </div>
+
+      <div class="flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-1" data-chips>
+        <span class="filter-chip active">Todas</span>
+        <span class="filter-chip">Almacén</span>
+        <span class="filter-chip">Bebidas</span>
+        <span class="filter-chip">Lácteos</span>
+        <span class="filter-chip">Fiambrería</span>
+        <span class="filter-chip">Limpieza</span>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-card overflow-hidden mb-10">
+        <div class="overflow-x-auto scroll-slim">
+          <table class="w-full text-sm min-w-[640px]">
+            <thead>
+              <tr class="text-left text-xs text-verde/50 border-b border-verde/10">
+                <th class="font-semibold px-5 py-3.5">Producto</th>
+                <th class="font-semibold px-3 py-3.5">Categoría</th>
+                <th class="font-semibold px-3 py-3.5 text-right">Precio</th>
+                <th class="font-semibold px-3 py-3.5 text-center">Stock</th>
+                <th class="px-5 py-3.5"></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-catalogo"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- SECCIÓN: PEDIDOS ---------- -->
+    <div id="panel-pedidos" class="panel-sec">
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <div class="mr-auto">
+          <h1 class="text-2xl font-extrabold">Pedidos</h1>
+          <p class="text-sm text-verde/60 mt-0.5">Jueves 6 de agosto · 12 pedidos</p>
+        </div>
+        <button class="bg-white border border-verde/15 hover:border-verde/40 transition text-verde font-bold rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm">
+          <i data-lucide="printer" class="w-4 h-4"></i>Imprimir el día
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Sin preparar</p>
+          <p class="precio text-3xl font-extrabold text-sky-700">2</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">En preparación</p>
+          <p class="precio text-3xl font-extrabold text-amber-600">1</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Entregados</p>
+          <p class="precio text-3xl font-extrabold text-verde">9</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Facturado hoy</p>
+          <p class="precio text-3xl font-extrabold">$170.400</p>
+        </div>
+      </div>
+
+      <div class="flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-1" data-chips>
+        <span class="filter-chip active">Todos</span>
+        <span class="filter-chip">Nuevo</span>
+        <span class="filter-chip">Preparando</span>
+        <span class="filter-chip">Listo</span>
+        <span class="filter-chip">Entregado</span>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-card overflow-hidden mb-10">
+        <div class="overflow-x-auto scroll-slim">
+          <table class="w-full text-sm min-w-[720px]">
+            <thead>
+              <tr class="text-left text-xs text-verde/50 border-b border-verde/10">
+                <th class="font-semibold px-5 py-3.5">Cliente</th>
+                <th class="font-semibold px-3 py-3.5">Hora</th>
+                <th class="font-semibold px-3 py-3.5">Items</th>
+                <th class="font-semibold px-3 py-3.5 text-right">Total</th>
+                <th class="font-semibold px-3 py-3.5">Estado</th>
+                <th class="px-5 py-3.5"></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-pedidos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- SECCIÓN: CATERING ---------- -->
+    <div id="panel-catering" class="panel-sec">
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <div class="mr-auto">
+          <h1 class="text-2xl font-extrabold">Catering</h1>
+          <p class="text-sm text-verde/60 mt-0.5">3 eventos confirmados este mes</p>
+        </div>
+        <button class="bg-dorado hover:brightness-95 transition text-verde-dark font-extrabold rounded-xl px-5 py-2.5 flex items-center gap-2 shadow-card">
+          <i data-lucide="file-plus" class="w-4 h-4"></i>Nuevo presupuesto
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Eventos del mes</p>
+          <p class="precio text-3xl font-extrabold">3</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Presupuestos abiertos</p>
+          <p class="precio text-3xl font-extrabold text-dorado-dark">4</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Facturado en catering</p>
+          <p class="precio text-3xl font-extrabold text-verde">$980.000</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-card">
+          <p class="text-xs font-semibold text-verde/50 mb-1">Cubiertos servidos</p>
+          <p class="precio text-3xl font-extrabold">140</p>
+        </div>
+      </div>
+
+      <h2 class="text-lg font-extrabold mb-3">Próximos eventos</h2>
+      <div class="grid lg:grid-cols-3 gap-3 sm:gap-4 mb-8">
+
+        <div class="bg-white rounded-2xl p-5 shadow-card lift border-l-4 border-dorado">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p class="font-extrabold">Hernán Bianchi</p>
+              <p class="text-xs text-verde/50 mt-0.5">Cumpleaños de 50 · Salón en Lanús</p>
+            </div>
+            <span class="text-[11px] font-bold text-dorado-dark bg-dorado/20 rounded-full px-2.5 py-1 shrink-0">Presupuesto</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-verde/60 mb-3">
+            <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>22 de agosto</span>
+            <span class="flex items-center gap-1"><i data-lucide="users" class="w-3.5 h-3.5"></i>60 personas</span>
+          </div>
+          <p class="precio text-2xl font-extrabold">$510.000</p>
+          <p class="text-[11px] text-verde/45 mt-0.5">Combo Fiesta · $8.500 por persona</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-card lift border-l-4 border-verde">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p class="font-extrabold">Colegio San Martín</p>
+              <p class="text-xs text-verde/50 mt-0.5">Acto de fin de curso</p>
+            </div>
+            <span class="text-[11px] font-bold text-verde bg-verde-soft rounded-full px-2.5 py-1 shrink-0">Confirmado</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-verde/60 mb-3">
+            <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>29 de agosto</span>
+            <span class="flex items-center gap-1"><i data-lucide="users" class="w-3.5 h-3.5"></i>80 personas</span>
+          </div>
+          <p class="precio text-2xl font-extrabold">$520.000</p>
+          <p class="text-[11px] text-verde/45 mt-0.5">Combo Merienda · $6.500 por persona</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-card lift border-l-4 border-verde">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p class="font-extrabold">Vanina Suárez</p>
+              <p class="text-xs text-verde/50 mt-0.5">Bautismo · Casa particular</p>
+            </div>
+            <span class="text-[11px] font-bold text-verde bg-verde-soft rounded-full px-2.5 py-1 shrink-0">Confirmado</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-verde/60 mb-3">
+            <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>30 de agosto</span>
+            <span class="flex items-center gap-1"><i data-lucide="users" class="w-3.5 h-3.5"></i>30 personas</span>
+          </div>
+          <p class="precio text-2xl font-extrabold">$225.000</p>
+          <p class="text-[11px] text-verde/45 mt-0.5">Combo Picada · $7.500 por persona</p>
+        </div>
+      </div>
+
+      <h2 class="text-lg font-extrabold mb-3">Tus combos</h2>
+      <div class="grid sm:grid-cols-3 gap-3 sm:gap-4 pb-10">
+        <div class="bg-white rounded-2xl p-5 shadow-card">
+          <p class="font-extrabold mb-1">Combo Picada</p>
+          <p class="text-xs text-verde/55 leading-relaxed mb-3">Fiambres, quesos, aceitunas, pan casero y grisines.</p>
+          <p class="precio text-2xl font-extrabold text-verde">$7.500</p>
+          <p class="text-[11px] text-verde/45">por persona</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-card">
+          <p class="font-extrabold mb-1">Combo Merienda</p>
+          <p class="text-xs text-verde/55 leading-relaxed mb-3">Sándwiches de miga, facturas, torta y bebidas sin alcohol.</p>
+          <p class="precio text-2xl font-extrabold text-verde">$6.500</p>
+          <p class="text-[11px] text-verde/45">por persona</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-card ring-2 ring-dorado">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="font-extrabold">Combo Fiesta</p>
+            <span class="text-[10px] font-extrabold bg-dorado text-verde-dark rounded-full px-2 py-0.5">El más pedido</span>
+          </div>
+          <p class="text-xs text-verde/55 leading-relaxed mb-3">Picada completa, sándwiches, pizzetas, mesa dulce y torta.</p>
+          <p class="precio text-2xl font-extrabold text-verde">$8.500</p>
+          <p class="text-[11px] text-verde/45">por persona</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- SECCIÓN: CONFIGURACIÓN ---------- -->
+    <div id="panel-config" class="panel-sec">
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <div class="mr-auto">
+          <h1 class="text-2xl font-extrabold">Configuración</h1>
+          <p class="text-sm text-verde/60 mt-0.5">Los datos que ve tu cliente</p>
+        </div>
+        <button class="bg-verde hover:brightness-110 transition text-white font-extrabold rounded-xl px-5 py-2.5 flex items-center gap-2 shadow-card">
+          <i data-lucide="check" class="w-4 h-4"></i>Guardar cambios
+        </button>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-4 pb-10">
+
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-card">
+          <h2 class="font-extrabold mb-4 flex items-center gap-2"><i data-lucide="store" class="w-4 h-4 text-verde/50"></i>Datos del comercio</h2>
+          <label class="block text-xs font-semibold text-verde/50 mb-1">Nombre</label>
+          <input type="text" value="Super Todo" class="config-input mb-3">
+          <label class="block text-xs font-semibold text-verde/50 mb-1">Dirección</label>
+          <input type="text" value="Cnel. Aguilar 3517, Monte Chingolo" class="config-input mb-3">
+          <label class="block text-xs font-semibold text-verde/50 mb-1">WhatsApp</label>
+          <input type="text" value="+54 11 3622-5341" class="config-input">
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-card">
+          <h2 class="font-extrabold mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-verde/50"></i>Horarios de atención</h2>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Lunes a viernes</span>
+              <span class="precio text-sm font-bold text-verde/70">8 a 13 · 17 a 21</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Sábados</span>
+              <span class="precio text-sm font-bold text-verde/70">8 a 14 · 17 a 21</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Domingos</span>
+              <span class="text-sm font-bold text-verde/40">Cerrado</span>
+            </div>
+          </div>
+          <div class="border-t border-verde/10 mt-4 pt-4 flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-semibold">Tomar pedidos fuera de hora</p>
+              <p class="text-xs text-verde/50 mt-0.5">Se preparan al abrir</p>
+            </div>
+            <button onclick="this.querySelector('.toggle').classList.toggle('on')">
+              <span class="toggle on inline-flex w-10 h-6 rounded-full bg-verde/20 p-1"><span class="knob w-4 h-4 rounded-full bg-white shadow"></span></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-card">
+          <h2 class="font-extrabold mb-4 flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-verde/50"></i>Medios de pago</h2>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Efectivo</span>
+              <button onclick="this.querySelector('.toggle').classList.toggle('on')"><span class="toggle on inline-flex w-10 h-6 rounded-full bg-verde/20 p-1"><span class="knob w-4 h-4 rounded-full bg-white shadow"></span></span></button>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Transferencia / MODO</span>
+              <button onclick="this.querySelector('.toggle').classList.toggle('on')"><span class="toggle on inline-flex w-10 h-6 rounded-full bg-verde/20 p-1"><span class="knob w-4 h-4 rounded-full bg-white shadow"></span></span></button>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Débito y crédito</span>
+              <button onclick="this.querySelector('.toggle').classList.toggle('on')"><span class="toggle on inline-flex w-10 h-6 rounded-full bg-verde/20 p-1"><span class="knob w-4 h-4 rounded-full bg-white shadow"></span></span></button>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-semibold">Cuenta corriente del barrio</span>
+              <button onclick="this.querySelector('.toggle').classList.toggle('on')"><span class="toggle inline-flex w-10 h-6 rounded-full bg-verde/20 p-1"><span class="knob w-4 h-4 rounded-full bg-white shadow"></span></span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-card">
+          <h2 class="font-extrabold mb-4 flex items-center gap-2"><i data-lucide="message-circle" class="w-4 h-4 text-verde/50"></i>Respuesta automática</h2>
+          <p class="text-xs text-verde/55 mb-3 leading-relaxed">Lo que contesta el sistema cuando alguien escribe y vos estás atendiendo el mostrador.</p>
+          <textarea rows="4" class="config-input resize-none leading-relaxed">¡Hola! Gracias por escribir a Super Todo. Ya vimos tu mensaje y te contestamos en unos minutos. Mirá las ofertas de hoy acá: supertodo.com.ar/ofertas</textarea>
+          <div class="border-t border-verde/10 mt-4 pt-4 flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-semibold">Ordenar mensajes con IA</p>
+              <p class="text-xs text-verde/50 mt-0.5">Clasifica y prioriza solo</p>
+            </div>
+            <button onclick="this.querySelector('.toggle').classList.toggle('on')">
+              <span class="toggle on inline-flex w-10 h-6 rounded-full bg-verde/20 p-1"><span class="knob w-4 h-4 rounded-full bg-white shadow"></span></span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    </section>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- VISTA 3 · MENSAJES / CRM (desktop)                            -->
+<!-- ============================================================ -->
+<main id="view-mensajes" class="view pt-16">
+  <div class="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- header CRM -->
+    <div class="flex flex-wrap items-end gap-3 mb-5">
+      <div class="mr-auto">
+        <h1 class="text-2xl font-extrabold">Mensajes</h1>
+        <p class="text-sm text-verde/60 mt-0.5"><span class="font-bold text-verde">312 mensajes procesados</span> · <span class="font-bold text-rojo">47 sin responder</span></p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap gap-2" data-chips>
+          <button class="filter-chip active"><svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-current"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>WhatsApp</button>
+          <button class="filter-chip"><svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</button>
+          <button class="filter-chip"><i data-lucide="mail" class="w-3.5 h-3.5"></i>Email</button>
+        </div>
+        <span class="w-px h-5 bg-verde/15 mx-1 hidden sm:block"></span>
+        <div class="flex flex-wrap gap-2" data-chips>
+          <button class="filter-chip active">Todas las categorías</button>
+          <button class="filter-chip">Catering</button>
+          <button class="filter-chip">Proveedores</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid xl:grid-cols-[1fr_360px] gap-5 items-start">
+      <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4" id="kanban"></div>
+      <aside class="bg-white rounded-2xl shadow-card p-5 xl:sticky xl:top-20" id="crm-detail"></aside>
+    </div>
+  </div>
+</main>
+
+<!-- Sello Operon -->
+<a href="https://operonhub.com/" target="_blank" rel="noopener" class="fixed bottom-3 left-4 z-50 flex items-center gap-1.5 opacity-40 hover:opacity-90 transition-opacity duration-300" title="Hecho por Operon">
+  <svg viewBox="0 0 24 24" class="w-4 h-4">
+    <circle cx="11" cy="12" r="7" fill="none" stroke="#14130F" stroke-width="2.2"/>
+    <circle cx="17.5" cy="7" r="3" fill="#F2C94C"/>
+    <path d="M20 9.5l2.5 3" stroke="#14130F" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <span class="text-[11px] font-bold tracking-wide text-[#14130F]">Operon</span>
+</a>
+
+<script>
+/* ================================================================
+   HELPERS
+================================================================ */
+/* Todo el markup de acá abajo es estático, escrito a mano en este archivo:
+   no entra nada del usuario ni de la red. */
+function paint(el, markup) {
+  el.replaceChildren();
+  el.insertAdjacentHTML('beforeend', markup);
+}
+const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
+
+/* ================================================================
+   DATOS DE LA TIENDA
+================================================================ */
+const PRODUCTS = {
+  aceite:  { n: 'Aceite Natura 900ml',    p: 2200, antes: 2750, off: 20, cat: 'Almacén',    tint: ['#FDF0D5', '#F7E0AE'], icon: '🫒' },
+  coca:    { n: 'Coca Cola 2.25L',        p: 3200, antes: 3800, off: 16, cat: 'Bebidas',    tint: ['#FBE3DC', '#F5C8BC'], icon: '🥤' },
+  /* precio exacto (no redondeado) para que el pack de 3 cierre en los $4.850 de la oferta */
+  fideos:  { n: 'Fideos Matarazzo 500g',  p: 4850 / 3, antes: 1990, off: 19, cat: 'Almacén', tint: ['#FDF0D5', '#F7E0AE'], icon: '🍝' },
+  leche:   { n: 'Leche La Serenísima 1L', p: 1850, antes: 2100, off: 12, cat: 'Lácteos',    tint: ['#E3F0FA', '#C6E0F2'], icon: '🥛' },
+  yerba:   { n: 'Yerba Playadito 1kg',    p: 4990, antes: 5900, off: 15, cat: 'Almacén',    tint: ['#E4F0E2', '#C8E2C4'], icon: '🧉' },
+  paty:    { n: 'Hamburguesas Paty x4',   p: 3950, antes: 4600, off: 14, cat: 'Fiambrería', tint: ['#FBE6EA', '#F3C7D0'], icon: '🍔' },
+  arroz:   { n: 'Arroz Marolio 1kg',      p: 1450, antes: 1800, off: 19, cat: 'Almacén',    tint: ['#FDF0D5', '#F7E0AE'], icon: '🍚' },
+  ala:     { n: 'Jabón en polvo Ala 3kg', p: 6800, antes: 8000, off: 15, cat: 'Limpieza',   tint: ['#E0F2F1', '#BEE3E1'], icon: '🧺' },
+  quilmes: { n: 'Cerveza Quilmes 1L',     p: 2500, antes: 2900, off: 14, cat: 'Bebidas',    tint: ['#FBE3DC', '#F5C8BC'], icon: '🍺' },
+  opera:   { n: 'Galletitas Ópera Arcor', p: 1200, antes: 1450, off: 17, cat: 'Almacén',    tint: ['#FDF0D5', '#F7E0AE'], icon: '🍪' },
+};
+
+/* carrito precargado: la demo ya arranca contando la historia del pedido */
+const cart = { aceite: 2, coca: 1, fideos: 3 };
+
+/* ================================================================
+   TIENDA — grilla + steppers
+================================================================ */
+function cardCtrl(id) {
+  const qty = cart[id] || 0;
+  if (!qty) {
+    return `<button onclick="setQty('${id}',1)" class="w-9 h-9 rounded-full bg-verde text-white text-lg font-bold leading-none shadow-md hover:bg-verde-dark transition-colors">+</button>`;
+  }
+  return `<div class="add-ctrl flex items-center gap-1 bg-verde rounded-full text-white shadow-md">
+    <button onclick="setQty('${id}',${qty - 1})" class="w-8 h-8 text-lg font-bold leading-none">−</button>
+    <span class="precio w-4 text-center text-sm font-extrabold">${qty}</span>
+    <button onclick="setQty('${id}',${qty + 1})" class="w-8 h-8 text-lg font-bold leading-none">+</button>
+  </div>`;
+}
+
+function renderGrid() {
+  const markup = Object.entries(PRODUCTS).map(([id, p]) => `
+    <div class="bg-white rounded-2xl p-2.5 shadow-card lift">
+      <div class="relative h-24 rounded-xl mb-2.5 flex items-center justify-center overflow-hidden"
+           style="background:linear-gradient(135deg, ${p.tint[0]}, ${p.tint[1]})">
+        <span class="text-3xl" aria-hidden="true">${p.icon}</span>
+        <span class="absolute bottom-1.5 left-2 right-2 text-[9px] font-extrabold uppercase tracking-wide text-verde-dark/40 truncate">${p.n}</span>
+        <span class="absolute top-1.5 left-1.5 bg-rojo text-white text-[10px] font-extrabold rounded-full px-2 py-0.5">-${p.off}%</span>
+      </div>
+      <p class="text-xs font-semibold leading-tight min-h-[2rem]">${p.n}</p>
+      <div class="flex items-end justify-between mt-1.5">
+        <div>
+          <p class="precio text-lg font-extrabold leading-none">${fmt(p.p)}</p>
+          <p class="precio text-[11px] text-verde/40 line-through mt-0.5">${fmt(p.antes)}</p>
+        </div>
+        <div id="ctrl-${id}">${cardCtrl(id)}</div>
+      </div>
+    </div>`).join('');
+  paint(document.getElementById('prod-grid'), markup);
+}
+
+function setQty(id, qty) {
+  if (qty <= 0) delete cart[id]; else cart[id] = qty;
+  paint(document.getElementById('ctrl-' + id), cardCtrl(id));
+  renderCart();
+}
+
+/* ================================================================
+   TIENDA — carrito, bottom sheet y mensaje de WhatsApp
+================================================================ */
+function renderCart() {
+  const entries = Object.entries(cart);
+  let total = 0;
+  entries.forEach(([id, qty]) => { total += PRODUCTS[id].p * qty; });
+
+  const bar = document.getElementById('cart-bar');
+  bar.style.display = entries.length ? '' : 'none';
+  document.getElementById('cart-summary').textContent =
+    `${entries.length} producto${entries.length === 1 ? '' : 's'} · ${fmt(total)}`;
+
+  const lineas = entries.map(([id, qty]) => {
+    const p = PRODUCTS[id];
+    return `<div class="flex items-center justify-between bg-white rounded-xl px-3.5 py-2.5 shadow-sm">
+      <span class="text-[13px] font-semibold"><span class="precio text-verde font-extrabold">${qty}x</span> ${p.n}</span>
+      <span class="precio text-[13px] font-extrabold">${fmt(p.p * qty)}</span>
+    </div>`;
+  }).join('');
+  paint(document.getElementById('sheet-lines'), lineas);
+
+  const msg = 'Hola! Quiero hacer este pedido:\n'
+    + entries.map(([id, qty]) => `• ${qty}x ${PRODUCTS[id].n} — ${fmt(PRODUCTS[id].p * qty)}`).join('\n')
+    + `\nTotal: ${fmt(total)}\nRetiro por el local.`;
+
+  document.getElementById('wsp-preview').textContent = msg;
+  document.getElementById('wsp-send').href = 'https://wa.me/5491136225341?text=' + encodeURIComponent(msg);
+}
+
+const overlay = document.getElementById('sheet-overlay');
+const sheet = document.getElementById('sheet');
+document.getElementById('cart-bar').addEventListener('click', () => {
+  overlay.classList.remove('opacity-0', 'pointer-events-none');
+  sheet.classList.remove('translate-y-full');
+});
+overlay.addEventListener('click', () => {
+  overlay.classList.add('opacity-0', 'pointer-events-none');
+  sheet.classList.add('translate-y-full');
+});
+
+/* ================================================================
+   PANEL — tabla de ofertas con toggles
+================================================================ */
+const TABLA = [
+  { id: 'aceite',  on: true  },
+  { id: 'coca',    on: true  },
+  { id: 'fideos',  on: true  },
+  { id: 'yerba',   on: true  },
+  { id: 'leche',   on: false },
+  { id: 'paty',    on: false },
+  { id: 'ala',     on: true  },
+  { id: 'quilmes', on: false },
+];
+
+function renderTabla() {
+  const markup = TABLA.map(({ id, on }) => {
+    const p = PRODUCTS[id];
+    return `<tr class="border-b border-verde/5 last:border-0 hover:bg-crema/60 transition-colors">
+      <td class="px-5 py-3">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style="background:linear-gradient(135deg, ${p.tint[0]}, ${p.tint[1]})">${p.icon}</span>
+          <span class="font-semibold">${p.n}</span>
+        </div>
+      </td>
+      <td class="px-3 py-3 text-verde/60">${p.cat}</td>
+      <td class="precio px-3 py-3 text-right text-verde/50 line-through">${fmt(p.antes)}</td>
+      <td class="precio px-3 py-3 text-right font-extrabold">${fmt(p.p)}</td>
+      <td class="px-3 py-3 text-center">
+        <button onclick="this.querySelector('.toggle').classList.toggle('on')" class="align-middle">
+          <span class="toggle ${on ? 'on' : ''} inline-flex w-10 h-6 rounded-full bg-verde/20 p-1">
+            <span class="knob w-4 h-4 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+      </td>
+      <td class="px-5 py-3">
+        <div class="flex justify-end gap-1 text-verde/40">
+          <button class="p-1.5 rounded-lg hover:bg-verde/10 hover:text-verde transition-colors" title="Editar">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
+          <button class="p-1.5 rounded-lg hover:bg-rojo/10 hover:text-rojo transition-colors" title="Borrar">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  paint(document.getElementById('tabla-productos'), markup);
+}
+
+/* ================================================================
+   PANEL — navegación entre secciones del sidebar
+   Todas las secciones son navegables aunque el contenido sea de
+   muestra: en la demo el dueño clickea todo y nada tiene que
+   quedar "muerto".
+================================================================ */
+function showPanel(name) {
+  document.querySelectorAll('.panel-sec').forEach(s => s.classList.toggle('active', s.id === 'panel-' + name));
+  document.querySelectorAll('.side-item').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ================================================================
+   PANEL · PRODUCTOS — catálogo con stock
+================================================================ */
+const STOCK = {
+  aceite: 48, coca: 120, fideos: 86, leche: 32, yerba: 54,
+  paty: 18, arroz: 95, ala: 12, quilmes: 64, opera: 7,
+};
+
+function renderCatalogo() {
+  const markup = Object.entries(PRODUCTS).map(([id, p]) => {
+    const s = STOCK[id];
+    const bajo = s <= 15;
+    return `<tr class="border-b border-verde/5 last:border-0 hover:bg-crema/60 transition-colors">
+      <td class="px-5 py-3">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style="background:linear-gradient(135deg, ${p.tint[0]}, ${p.tint[1]})">${p.icon}</span>
+          <span class="font-semibold">${p.n}</span>
+        </div>
+      </td>
+      <td class="px-3 py-3 text-verde/60">${p.cat}</td>
+      <td class="precio px-3 py-3 text-right font-extrabold">${fmt(p.antes)}</td>
+      <td class="px-3 py-3 text-center">
+        <span class="precio text-xs font-extrabold rounded-full px-2.5 py-1 ${bajo ? 'bg-rojo/10 text-rojo' : 'bg-verde-soft text-verde'}">${s}${bajo ? ' · bajo' : ''}</span>
+      </td>
+      <td class="px-5 py-3">
+        <div class="flex justify-end gap-1 text-verde/40">
+          <button class="p-1.5 rounded-lg hover:bg-verde/10 hover:text-verde transition-colors" title="Editar">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
+          <button class="p-1.5 rounded-lg hover:bg-rojo/10 hover:text-rojo transition-colors" title="Borrar">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  paint(document.getElementById('tabla-catalogo'), markup);
+}
+
+/* ================================================================
+   PANEL · PEDIDOS — los mismos clientes que aparecen en el CRM,
+   para que la demo se lea como un solo sistema
+================================================================ */
+const EST_STYLE = {
+  Nuevo:      'bg-sky-100 text-sky-700',
+  Preparando: 'bg-amber-100 text-amber-700',
+  Listo:      'bg-verde-soft text-verde',
+  Entregado:  'bg-gray-100 text-gray-500',
+};
+
+const PEDIDOS = [
+  { c: 'Jorge Ferreyra',        h: '10:47', i: 3,  t: 9150,  e: 'Nuevo' },
+  { c: 'Diego Sosa',            h: '11:05', i: 2,  t: 6450,  e: 'Nuevo' },
+  { c: 'Marcela Domínguez',     h: '10:12', i: 8,  t: 18300, e: 'Preparando' },
+  { c: 'Comedor Los Naranjos',  h: '09:30', i: 24, t: 64700, e: 'Listo' },
+  { c: 'Marta Ledesma',         h: '09:15', i: 12, t: 21400, e: 'Listo' },
+  { c: 'Valeria Núñez',         h: '08:55', i: 5,  t: 11900, e: 'Entregado' },
+  { c: 'Rosa Benítez',          h: '08:20', i: 6,  t: 13750, e: 'Entregado' },
+  { c: 'Federico Acosta',       h: '08:05', i: 4,  t: 8900,  e: 'Entregado' },
+  { c: 'Griselda Molina',       h: '08:00', i: 3,  t: 5850,  e: 'Entregado' },
+];
+
+function renderPedidos() {
+  const markup = PEDIDOS.map(p => `<tr class="border-b border-verde/5 last:border-0 hover:bg-crema/60 transition-colors">
+      <td class="px-5 py-3 font-semibold">${p.c}</td>
+      <td class="precio px-3 py-3 text-verde/60">${p.h}</td>
+      <td class="px-3 py-3 text-verde/60">${p.i} items</td>
+      <td class="precio px-3 py-3 text-right font-extrabold">${fmt(p.t)}</td>
+      <td class="px-3 py-3">
+        <span class="text-[11px] font-bold rounded-full px-2.5 py-1 ${EST_STYLE[p.e]}">${p.e}</span>
+      </td>
+      <td class="px-5 py-3 text-right">
+        <button class="text-xs font-bold text-verde/60 hover:text-verde transition-colors">Ver detalle</button>
+      </td>
+    </tr>`).join('');
+  paint(document.getElementById('tabla-pedidos'), markup);
+}
+
+/* ================================================================
+   CRM — kanban + panel de detalle
+================================================================ */
+const CAT_STYLE = {
+  Mercado:   'bg-verde-soft text-verde',
+  Pedido:    'bg-sky-100 text-sky-700',
+  Proveedor: 'bg-violet-100 text-violet-700',
+  Catering:  'bg-dorado-soft text-amber-700',
+  Otro:      'bg-gray-100 text-gray-600',
+};
+const URG_STYLE = {
+  Alta:  'bg-rojo/10 text-rojo',
+  Media: 'bg-amber-100 text-amber-700',
+  Baja:  'bg-gray-100 text-gray-500',
+};
+const CH_ICON = {
+  wa: '<svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-[#25D366]"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-2.9-1.3-4.8-4.3-5-4.5-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5.2.6.8 2 .9 2.1.1.2.1.3 0 .5-.3.7-.7 1-.5 1.3.7 1.2 1.6 2 2.8 2.6.3.2.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.5-.1 1z"/></svg>',
+  ig: '<svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="#C13584" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#C13584" stroke="none"/></svg>',
+  em: '<svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="#64748b" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>',
+};
+const AVATAR_BG = ['#1B5E3B', '#B07A1E', '#7C5CBF', '#0E7490', '#B23A48', '#4D7C0F'];
+
+const MSGS = {
+  'Nuevo': [
+    { id: 'romina',  name: 'Romina Aguirre',       ch: 'wa', cat: 'Mercado',   urg: 'Media', t: 'hace 12 min', sum: 'Pregunta si va a haber ofertas de carne para el fin de semana' },
+    { id: 'vittal',  name: 'Distribuidora Vittal', ch: 'em', cat: 'Proveedor', urg: 'Alta',  t: 'hace 25 min', sum: 'Confirma entrega de lácteos mañana 7:30 y pide confirmar recepción' },
+    { id: 'hernan',  name: 'Hernán Bianchi',       ch: 'ig', cat: 'Catering',  urg: 'Alta',  t: 'hace 40 min', sum: 'Pide presupuesto de catering para un cumpleaños de 60 personas' },
+    { id: 'claudia', name: 'Claudia Pereyra',      ch: 'wa', cat: 'Pedido',    urg: 'Media', t: 'hace 1 h',    sum: 'Quiere agregar 2 productos al pedido que hizo a la mañana' },
+  ],
+  'En proceso': [
+    { id: 'sergio',  name: 'Sergio Maldonado',      ch: 'wa', cat: 'Otro',      urg: 'Alta',  t: 'hace 2 h', sum: 'Reclama que el vuelto del pedido de ayer vino incompleto' },
+    { id: 'colegio', name: 'Colegio San Martín',    ch: 'em', cat: 'Pedido',    urg: 'Alta',  t: 'hace 3 h', sum: 'Pedido mensual del comedor: 40 kg de mercadería seca' },
+    { id: 'lucia',   name: 'Lucía Herrera',         ch: 'ig', cat: 'Mercado',   urg: 'Baja',  t: 'hace 3 h', sum: 'Consulta si trabajan productos sin TACC' },
+    { id: 'trebol',  name: 'Frigorífico El Trébol', ch: 'wa', cat: 'Proveedor', urg: 'Media', t: 'hace 4 h', sum: 'Mandó la lista de precios nueva de cortes vacunos' },
+  ],
+  'Respondido': [
+    { id: 'pablo',   name: 'Pablo Giménez',   ch: 'wa', cat: 'Mercado',  urg: 'Baja',  t: 'hace 5 h', ia: true, sum: 'Preguntó el horario del sábado — se le enviaron los horarios' },
+    { id: 'marta',   name: 'Marta Ledesma',   ch: 'wa', cat: 'Pedido',   urg: 'Media', t: 'hace 5 h', ia: true, sum: 'Pedido de 12 items confirmado para retirar a las 18h' },
+    { id: 'nicolas', name: 'Nicolás Fontana', ch: 'ig', cat: 'Catering', urg: 'Media', t: 'hace 6 h', sum: 'Pidió el menú de catering — se le envió con las opciones y precios' },
+    { id: 'andrea',  name: 'Andrea Salas',    ch: 'em', cat: 'Otro',     urg: 'Baja',  t: 'hace 7 h', ia: true, sum: 'Consulta por factura A — se derivó al contador' },
+  ],
+  'Cerrado': [
+    { id: 'griselda', name: 'Griselda Molina',     ch: 'wa', cat: 'Mercado',   urg: 'Baja',  t: 'ayer',        sum: 'Consultó precio de yerba y pasó a comprar por el local' },
+    { id: 'bodega',   name: 'Bodega Familia Ríos', ch: 'em', cat: 'Proveedor', urg: 'Baja',  t: 'ayer',        sum: 'Promo de vinos — se agendó reunión para la semana próxima' },
+    { id: 'federico', name: 'Federico Acosta',     ch: 'wa', cat: 'Pedido',    urg: 'Baja',  t: 'ayer',        sum: 'Pedido entregado y cobrado sin novedades' },
+    { id: 'vanina',   name: 'Vanina Suárez',       ch: 'ig', cat: 'Catering',  urg: 'Media', t: 'hace 2 días', sum: 'Evento de 30 personas realizado el sábado — pidió la factura' },
+  ],
+};
+
+/* conversaciones completas para el panel de detalle */
+const CONVS = {
+  hernan: {
+    conv: [
+      { from: 'them', text: 'Hola! Vi que hacen catering. El 22/8 cumple 50 mi señora y somos unas 60 personas, ¿me pasás precios?' },
+      { from: 'them', text: 'Sería con algo salado, mesa dulce y torta. El salón queda acá en Lanús, a diez cuadras de ustedes.' },
+    ],
+    sug: 'Hola Hernán, ¡gracias por escribirnos! Para 60 personas tenemos el combo Fiesta: picada completa, sándwiches de miga, pizzetas, mesa dulce y torta desde $8.500 por persona. ¿Querés que te mande el menú completo con fotos? La entrega en el salón va sin cargo.',
+  },
+  vittal: {
+    conv: [
+      { from: 'them', text: 'Buen día. Confirmamos la entrega del pedido #4417 (lácteos y fiambres) para mañana viernes 7:30hs. Por favor confirmar recepción. Saludos, Logística Vittal.' },
+    ],
+    sug: 'Buen día, confirmado: mañana viernes 7:30 recibimos el pedido #4417 por el portón de Cnel. Aguilar. Va a estar Óscar para la descarga. ¡Gracias!',
+  },
+  sergio: {
+    conv: [
+      { from: 'them', text: 'Che, ayer pedí y me trajeron todo bien, pero el vuelto vino $1.500 menos. Fijate porque siempre compro ahí.' },
+      { from: 'me',   text: 'Hola Sergio, mil disculpas. Estamos revisando la rendición de ayer y te confirmamos en el día.' },
+    ],
+    sug: 'Sergio, revisamos la caja de ayer y tenés razón: hubo un error con el vuelto. Te descontamos los $1.500 del próximo pedido o pasás a retirarlos cuando quieras. Disculpá la molestia y gracias por avisarnos.',
+  },
+  colegio: {
+    conv: [
+      { from: 'them', text: 'Estimados: enviamos el pedido mensual del comedor. Planilla: 20kg de arroz, 15kg de fideos, 5kg de lentejas, aceite x12 y puré de tomate x24. Necesitamos la entrega antes del viernes.' },
+      { from: 'me',   text: 'Recibido, estamos armando el pedido. Mañana les confirmamos el total con el descuento por volumen.' },
+    ],
+    sug: 'Buenas tardes. Confirmamos el pedido completo: total $187.400 con el 10% de descuento institucional ya incluido. Entregamos el jueves entre 9 y 11hs como siempre, con la factura A. ¡Gracias por elegirnos un mes más!',
+  },
+  romina: {
+    conv: [
+      { from: 'them', text: 'Hola! ¿El finde va a haber alguna oferta de carne? Quiero hacer un asado el domingo.' },
+    ],
+    sug: 'Hola Romina! Sí: el viernes arranca la promo de parrilla — vacío, asado y chorizos con 20% off llevando más de 2kg. El viernes a la mañana te paso el link de las ofertas así reservás: supertodo.com.ar/ofertas',
+  },
+};
+
+function crmCard(m, idx) {
+  return `<button onclick="selectMsg('${m.id}')" data-msg="${m.id}" class="msg-card w-full text-left bg-white rounded-xl border border-verde/10 p-3.5 shadow-sm hover:shadow-md">
+    <div class="flex items-center gap-2.5 mb-2">
+      <span class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0" style="background:${AVATAR_BG[idx % AVATAR_BG.length]}">${m.name[0]}</span>
+      <span class="font-bold text-[13px] leading-tight flex-1 min-w-0 truncate">${m.name}</span>
+      ${CH_ICON[m.ch]}
+    </div>
+    <p class="text-xs text-verde-dark/70 leading-snug mb-2.5">${m.sum}</p>
+    <div class="flex items-center gap-1.5 flex-wrap">
+      <span class="text-[10px] font-bold rounded-full px-2 py-0.5 ${CAT_STYLE[m.cat]}">${m.cat}</span>
+      <span class="text-[10px] font-bold rounded-full px-2 py-0.5 ${URG_STYLE[m.urg]}">${m.urg}</span>
+      ${m.ia ? '<span class="text-[10px] font-bold rounded-full px-2 py-0.5 bg-verde text-white">✦ Respondida por IA</span>' : ''}
+      <span class="text-[10px] text-verde/40 font-medium ml-auto">${m.t}</span>
+    </div>
+  </button>`;
+}
+
+function renderKanban() {
+  const COL_DOT = { 'Nuevo': '#0284C7', 'En proceso': '#B45309', 'Respondido': '#1B5E3B', 'Cerrado': '#6B7280' };
+  let idx = 0;
+  const markup = Object.entries(MSGS).map(([col, list]) => `
+    <div class="bg-verde/[.04] rounded-2xl p-3">
+      <div class="flex items-center gap-2 px-1 mb-3">
+        <span class="w-2 h-2 rounded-full" style="background:${COL_DOT[col]}"></span>
+        <h3 class="text-[13px] font-extrabold">${col}</h3>
+        <span class="precio text-[11px] font-bold text-verde/40 ml-auto">${list.length}</span>
+      </div>
+      <div class="space-y-2.5 max-h-[520px] overflow-y-auto scroll-slim pr-0.5">
+        ${list.map(m => crmCard(m, idx++)).join('')}
+      </div>
+    </div>`).join('');
+  paint(document.getElementById('kanban'), markup);
+}
+
+function findMsg(id) {
+  for (const list of Object.values(MSGS)) {
+    const m = list.find(x => x.id === id);
+    if (m) return m;
+  }
+}
+
+function selectMsg(id) {
+  document.querySelectorAll('.msg-card').forEach(c => c.classList.toggle('selected', c.dataset.msg === id));
+  const m = findMsg(id);
+  const d = CONVS[id] || {
+    conv: [{ from: 'them', text: m.sum }],
+    sug: 'Gracias por escribirnos. En breve te respondemos con todos los detalles.',
+  };
+
+  const markup = `
+    <div class="flex items-center gap-3 mb-1">
+      <span class="w-10 h-10 rounded-full bg-verde flex items-center justify-center text-white font-extrabold shrink-0">${m.name[0]}</span>
+      <div class="min-w-0">
+        <p class="font-extrabold leading-tight truncate">${m.name}</p>
+        <p class="text-[11px] text-verde/50 font-medium">${m.t}</p>
+      </div>
+      <span class="ml-auto shrink-0">${CH_ICON[m.ch]}</span>
+    </div>
+    <div class="flex gap-1.5 mb-4">
+      <span class="text-[10px] font-bold rounded-full px-2 py-0.5 ${CAT_STYLE[m.cat]}">${m.cat}</span>
+      <span class="text-[10px] font-bold rounded-full px-2 py-0.5 ${URG_STYLE[m.urg]}">${m.urg}</span>
+    </div>
+
+    <div class="space-y-2.5 mb-5">
+      ${d.conv.map(b => b.from === 'them'
+        ? `<div class="bg-crema rounded-2xl rounded-tl-md px-3.5 py-2.5 text-[13px] leading-relaxed max-w-[92%]">${b.text}</div>`
+        : `<div class="bg-verde text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 text-[13px] leading-relaxed max-w-[92%] ml-auto">${b.text}</div>`
+      ).join('')}
+    </div>
+
+    <div class="rounded-2xl border-2 border-dorado bg-dorado-soft/60 p-4">
+      <p class="text-[11px] font-extrabold tracking-wide text-amber-700 uppercase mb-2 flex items-center gap-1.5">
+        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-amber-600"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+        Sugerencia de respuesta IA
+      </p>
+      <p class="text-[13px] leading-relaxed text-verde-dark mb-3.5">${d.sug}</p>
+      <div class="flex gap-2">
+        <button class="flex-1 bg-verde hover:bg-verde-dark transition-colors text-white text-[13px] font-bold rounded-xl py-2.5">Usar respuesta</button>
+        <button class="px-4 bg-white border border-verde/20 hover:border-verde/50 transition-colors text-verde text-[13px] font-bold rounded-xl py-2.5">Editar</button>
+      </div>
+    </div>`;
+  paint(document.getElementById('crm-detail'), markup);
+}
+
+/* ================================================================
+   NAVEGACIÓN DE TABS
+================================================================ */
+function switchTab(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle('bg-verde', on);
+    b.classList.toggle('text-white', on);
+    b.classList.toggle('shadow-md', on);
+    b.classList.toggle('text-verde/70', !on);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.tab-btn').forEach(b =>
+  b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+/* secciones del panel */
+document.querySelectorAll('.side-item').forEach(b =>
+  b.addEventListener('click', () => showPanel(b.dataset.panel)));
+
+/* chips de filtro: el activo es exclusivo dentro de su grupo [data-chips],
+   así el filtro de canal y el de categoría no se pisan entre sí */
+document.querySelectorAll('.filter-chip').forEach(chip =>
+  chip.addEventListener('click', () => {
+    const grupo = chip.closest('[data-chips]') || chip.parentElement;
+    grupo.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  }));
+
+/* ================================================================
+   INIT
+================================================================ */
+renderGrid();
+renderCart();
+renderTabla();
+renderCatalogo();
+renderPedidos();
+renderKanban();
+selectMsg('hernan');   /* arranca con la card más vendedora: catering para 60 personas */
+switchTab('tienda');
+lucide.createIcons();
+</script>
+</body>
+</html>

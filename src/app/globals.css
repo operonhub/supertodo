@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/**
+ * Paleta e identidad de Super Todo, tomadas de la demo original.
+ * En Tailwind v4 cada variable de @theme genera sus utilidades:
+ * --color-verde habilita bg-verde, text-verde, border-verde, etc.
+ */
+@theme {
+  --color-verde: #1b5e3b;
+  --color-verde-dark: #12432a;
+  --color-verde-soft: #e8f1ea;
+  --color-dorado: #f2c230;
+  --color-dorado-soft: #fcf3d7;
+  --color-dorado-dark: #8a6b00;
+  --color-crema: #faf6ed;
+  --color-rojo: #d93b3b;
+  --color-wsp: #25d366;
+
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 3px rgba(18, 67, 42, 0.06), 0 6px 20px rgba(18, 67, 42, 0.07);
+  --shadow-bar: 0 -4px 24px rgba(18, 67, 42, 0.12);
+}
+
+html {
+  font-optical-sizing: auto;
+}
+
+body {
+  background: var(--color-crema);
+  color: var(--color-verde-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Los precios son el protagonista: cifras de ancho fijo para que las
+   columnas de la grilla y del carrito queden alineadas. */
+.precio {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Scroll horizontal de los chips, sin barra visible. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Foco visible y consistente para navegación por teclado. */
+:focus-visible {
+  outline: 2px solid var(--color-verde);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-sheet-in {
+  animation: sheet-in 0.28s cubic-bezier(0.22, 0.8, 0.36, 1) both;
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease both;
+}
+
+/* Quien prefiera menos movimiento no ve ninguna de estas transiciones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
