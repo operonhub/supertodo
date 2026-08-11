@@ -83,6 +83,12 @@ export interface Product {
    * botón — no reemplaza al producto, lo complementa.
    */
   suggestedProductIds?: string[];
+  /**
+   * Código de barras (EAN/UPC), cargado escaneando con la cámara o a mano.
+   * Sirve para autocompletar nombre/presentación/foto contra Open Food Facts
+   * al dar de alta — el precio y la categoría siempre se cargan aparte.
+   */
+  barcode?: string;
 }
 
 /** Lo único que se persiste del carrito: qué y cuánto. */
@@ -152,6 +158,15 @@ export interface BusinessConfig {
   offerDeadline: string;
   /** A quién se le manda la preparación de un pedido por WhatsApp. */
   team: TeamMember[];
+  /** Formas de pago que acepta el local. El cliente elige una al hacer el pedido. */
+  paymentMethods: PaymentMethod[];
+}
+
+export interface PaymentMethod {
+  id: string;
+  label: string;
+  /** Sólo se ofrecen al cliente los métodos activados. */
+  enabled: boolean;
 }
 
 export interface TeamMember {
@@ -198,6 +213,14 @@ export interface OrderItem {
   unit: string;
   quantity: number;
   unitPrice: number;
+  /**
+   * Lo que realmente se cobra por esta línea, ya con la promo aplicada.
+   * `unitPrice × quantity` no sirve para 3x2/2x1 (bajan el total, no el
+   * precio unitario), así que el total real queda guardado aparte.
+   */
+  subtotal: number;
+  /** Texto de la promo vigente al momento de la compra: "3x2", "−20%". */
+  promotionLabel?: string;
 }
 
 /** Un cambio de estado, para el historial del pedido. */
@@ -213,10 +236,18 @@ export interface Order {
   customer: {
     name: string;
     phone: string;
+    /** Sólo tiene valor si `delivery === 'reparto'`. */
+    address?: string;
   };
   items: OrderItem[];
   total: number;
   delivery: DeliveryMode;
+  /**
+   * Nombre del método elegido, **congelado al momento de la compra** — igual
+   * que `OrderItem.unitPrice` — para que un método renombrado o desactivado
+   * después no deje pedidos viejos con una referencia rota.
+   */
+  paymentMethod: string;
   status: OrderStatus;
   payment: PaymentStatus;
   notes?: string;

@@ -1,23 +1,17 @@
 import { BUSINESS } from '@/config/business';
-import { buildSeedOrders } from '@/data/orders';
-import { createPersistentStore } from '@/lib/createStore';
-import { productToRow, rowToBusinessConfig, rowToProduct, toJson } from '@/lib/supabase/mappers';
+import { productToRow, rowToBusinessConfig, rowToOrder, rowToProduct, toJson } from '@/lib/supabase/mappers';
 import { createClient } from '@/lib/supabase/client';
+import type { TablesUpdate } from '@/lib/supabase/database.types';
 import type { BusinessConfig, Order, Product } from '@/types';
 
 /**
- * Productos y configuración viven en Supabase; pedidos siguen en localStorage
- * (ver `orderStore` más abajo — todavía no está definido cómo entra un pedido
- * real al panel, migrarlo ahora movería datos que van a cambiar de forma).
+ * Todo vive en Supabase (productos, configuración, pedidos).
  *
  * Sin tiempo real: cada store trae los datos una vez al montar y se
  * actualiza a mano después de cada escritura propia. Si el dueño edita un
  * precio en su computadora, un cliente que ya tenía la tienda abierta no lo
  * ve hasta refrescar.
  */
-
-const esObjeto = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
 
 type Listener = () => void;
 
@@ -123,59 +117,91 @@ export async function removeProduct(id: string): Promise<void> {
 }
 
 /* ================================================================
-   PEDIDOS — localStorage, sin cambios
-   (fuera de alcance de esta migración: ver nota arriba)
+   PEDIDOS — Supabase
 ================================================================ */
 
-/**
- * El seed es `[]` y no los pedidos de muestra: las fechas de los mocks se
- * calculan con "ahora", que en el servidor sería la hora del build. Se
- * materializan en `load`, que corre sólo en el cliente.
- */
 const SIN_PEDIDOS: Order[] = [];
 
-export const orderStore = createPersistentStore<Order[]>({
-  key: 'supertodo.pedidos.v1',
-  load(stored) {
-    if (!Array.isArray(stored)) return buildSeedOrders();
+let orderSnapshot: Order[] = SIN_PEDIDOS;
+let ordersInicializado = false;
+const orderListeners = new Set<Listener>();
 
-    const pedidos = stored.filter(
-      (o): o is Order =>
-        esObjeto(o) &&
-        typeof o.id === 'string' &&
-        typeof o.createdAt === 'string' &&
-        Array.isArray(o.items),
-    );
+function emitOrders() {
+  for (const listener of orderListeners) listener();
+}
 
-    return pedidos.length > 0 ? pedidos : buildSeedOrders();
+async function fetchOrders() {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('No se pudieron cargar los pedidos:', error.message);
+    return;
+  }
+
+  orderSnapshot = data.map(rowToOrder);
+  emitOrders();
+}
+
+export const orderStore = {
+  subscribe(listener: Listener) {
+    orderListeners.add(listener);
+
+    if (!ordersInicializado) {
+      ordersInicializado = true;
+      fetchOrders();
+    }
+
+    return () => {
+      orderListeners.delete(listener);
+    };
   },
-  seed: SIN_PEDIDOS,
-});
+  getSnapshot: () => orderSnapshot,
+  getServerSnapshot: () => SIN_PEDIDOS,
+};
 
-export function updateOrder(id: string, cambios: Partial<Order>) {
-  orderStore.update((pedidos) =>
-    pedidos.map((pedido) => (pedido.id === id ? { ...pedido, ...cambios } : pedido)),
-  );
+/**
+ * Suma un pedido recién creado (por `createOrder`, desde el checkout) al
+ * snapshot en memoria, sin ir a buscarlo de nuevo a la base.
+ */
+export function addOrderToSnapshot(order: Order) {
+  orderSnapshot = [order, ...orderSnapshot];
+  emitOrders();
+}
+
+async function patchOrder(id: string, cambios: TablesUpdate<'orders'>): Promise<Order> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('orders').update(cambios).eq('id', id).select().single();
+
+  if (error) throw new Error(`No se pudo actualizar el pedido: ${error.message}`);
+
+  const actualizado = rowToOrder(data);
+  orderSnapshot = orderSnapshot.map((p) => (p.id === id ? actualizado : p));
+  emitOrders();
+  return actualizado;
+}
+
+export async function updateOrder(id: string, cambios: Partial<Order>): Promise<Order> {
+  const fila: TablesUpdate<'orders'> = {};
+  if (cambios.status !== undefined) fila.status = cambios.status;
+  if (cambios.payment !== undefined) fila.payment_status = cambios.payment;
+  if (cambios.notes !== undefined) fila.notes = cambios.notes;
+  if (cambios.history !== undefined) fila.history = toJson(cambios.history);
+
+  return patchOrder(id, fila);
 }
 
 /** Cambia el estado operativo y deja constancia en el historial. */
-export function setOrderStatus(id: string, status: Order['status']) {
-  orderStore.update((pedidos) =>
-    pedidos.map((pedido) =>
-      pedido.id === id
-        ? {
-            ...pedido,
-            status,
-            history: [...pedido.history, { status, at: new Date().toISOString() }],
-          }
-        : pedido,
-    ),
-  );
+export async function setOrderStatus(id: string, status: Order['status']): Promise<Order> {
+  const actual = orderSnapshot.find((p) => p.id === id);
+  const history = [...(actual?.history ?? []), { status, at: new Date().toISOString() }];
+
+  return patchOrder(id, { status, history: toJson(history) });
 }
 
 /** El pago va aparte del estado operativo: cambiarlo no toca el historial. */
-export function setOrderPayment(id: string, payment: Order['payment']) {
-  updateOrder(id, { payment });
+export async function setOrderPayment(id: string, payment: Order['payment']): Promise<Order> {
+  return patchOrder(id, { payment_status: payment });
 }
 
 /* ================================================================

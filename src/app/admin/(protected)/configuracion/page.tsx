@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
-import { Field, Toast, inputClass } from '@/components/admin/ui';
+import { Field, Toast, Toggle, inputClass } from '@/components/admin/ui';
 import { AlertIcon } from '@/components/icons';
 import { useSettings } from '@/hooks/useStores';
 import { updateSettings } from '@/lib/stores';
@@ -31,6 +31,13 @@ export default function ConfiguracionPage() {
     set(
       'team',
       form.team.map((m, j) => (j === i ? { ...m, ...parche } : m)),
+    );
+  }
+
+  function setMétodoPago(i: number, enabled: boolean) {
+    set(
+      'paymentMethods',
+      form.paymentMethods.map((m, j) => (j === i ? { ...m, enabled } : m)),
     );
   }
 
@@ -229,6 +236,26 @@ export default function ConfiguracionPage() {
               persona aparece deshabilitado.
             </p>
           )}
+        </section>
+
+        <section className="rounded-2xl bg-white p-5 shadow-card sm:p-6 lg:col-span-2">
+          <h2 className="mb-1 text-sm font-extrabold">Formas de pago</h2>
+          <p className="mb-4 text-[11px] text-verde/90">
+            Las que estén activas son las que el cliente puede elegir al hacer un pedido desde la tienda.
+          </p>
+
+          <div className="divide-y divide-verde/10">
+            {form.paymentMethods.map((método, i) => (
+              <div key={método.id} className="flex items-center justify-between gap-3 py-2.5">
+                <p className="text-sm font-semibold">{método.label}</p>
+                <Toggle
+                  checked={método.enabled}
+                  onChange={(v) => setMétodoPago(i, v)}
+                  label={`${método.label} activo`}
+                />
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* Ya no es "este navegador": desde que se conectó Supabase, esto se ve

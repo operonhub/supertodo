@@ -37,10 +37,59 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          created_at: string
+          customer_address: string | null
+          customer_name: string
+          customer_phone: string
+          delivery: string
+          history: Json
+          id: string
+          items: Json
+          notes: string | null
+          payment_method: string
+          payment_status: string
+          status: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          customer_address?: string | null
+          customer_name: string
+          customer_phone: string
+          delivery: string
+          history?: Json
+          id: string
+          items: Json
+          notes?: string | null
+          payment_method: string
+          payment_status?: string
+          status?: string
+          total: number
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery?: string
+          history?: Json
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_method?: string
+          payment_status?: string
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean
           available: boolean
+          barcode: string | null
           category: string
           id: string
           image_url: string | null
@@ -55,6 +104,7 @@ export type Database = {
         Insert: {
           active?: boolean
           available?: boolean
+          barcode?: string | null
           category: string
           id: string
           image_url?: string | null
@@ -69,6 +119,7 @@ export type Database = {
         Update: {
           active?: boolean
           available?: boolean
+          barcode?: string | null
           category?: string
           id?: string
           image_url?: string | null

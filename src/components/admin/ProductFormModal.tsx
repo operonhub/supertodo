@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { BarcodeScanner } from '@/components/admin/BarcodeScanner';
 import { SuggestedProductsPicker } from '@/components/admin/SuggestedProductsPicker';
 import { Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
+import { CameraIcon } from '@/components/icons';
 import { CATEGORIES } from '@/data/categories';
+import { lookupBarcode } from '@/lib/barcode';
 import { slugify } from '@/lib/text';
 import type { CategorySlug, Product } from '@/types';
 
@@ -18,6 +21,7 @@ interface FormState {
   active: boolean;
   /** Ids de las variantes sugeridas. Se editan con `SuggestedProductsPicker`. */
   suggestedProductIds: string[];
+  barcode: string;
 }
 
 const VACÍO: FormState = {
@@ -29,6 +33,7 @@ const VACÍO: FormState = {
   stock: '',
   active: true,
   suggestedProductIds: [],
+  barcode: '',
 };
 
 function toForm(product: Product): FormState {
@@ -41,6 +46,7 @@ function toForm(product: Product): FormState {
     stock: product.stock === undefined ? '' : String(product.stock),
     active: product.active !== false,
     suggestedProductIds: product.suggestedProductIds ?? [],
+    barcode: product.barcode ?? '',
   };
 }
 
@@ -94,9 +100,28 @@ export function ProductFormModal({
   const [errores, setErrores] = useState<Errores>({});
   const [guardando, setGuardando] = useState(false);
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
+  const [escaneando, setEscaneando] = useState(false);
+  const [buscandoDatos, setBuscandoDatos] = useState(false);
 
   const set = <K extends keyof FormState>(campo: K, valor: FormState[K]) =>
     setForm((f) => ({ ...f, [campo]: valor }));
+
+  async function onCodigoDetectado(codigo: string) {
+    setEscaneando(false);
+    set('barcode', codigo);
+
+    setBuscandoDatos(true);
+    const encontrado = await lookupBarcode(codigo);
+    setBuscandoDatos(false);
+
+    if (!encontrado) return;
+    setForm((f) => ({
+      ...f,
+      name: encontrado.name,
+      unit: encontrado.unit || f.unit,
+      imageUrl: encontrado.imageUrl ?? f.imageUrl,
+    }));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,6 +154,7 @@ export function ProductFormModal({
         ...(form.suggestedProductIds.length > 0
           ? { suggestedProductIds: form.suggestedProductIds }
           : {}),
+        ...(form.barcode.trim() ? { barcode: form.barcode.trim() } : {}),
         active: form.active,
         // Sin control de stock el producto se asume disponible.
         available: stock === undefined ? true : stock > 0,
@@ -145,6 +171,29 @@ export function ProductFormModal({
   return (
     <Modal open onClose={onClose} title={product ? 'Editar producto' : 'Agregar producto'}>
       <form onSubmit={submit} noValidate>
+        <Field
+          label="Código de barras"
+          htmlFor="p-barcode"
+          hint={buscandoDatos ? 'Buscando nombre y foto…' : 'Opcional. Escanealo para autocompletar'}
+        >
+          <div className="flex gap-2">
+            <input
+              id="p-barcode"
+              className={inputClass}
+              value={form.barcode}
+              onChange={(e) => set('barcode', e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setEscaneando(true)}
+              aria-label="Escanear código de barras"
+              className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-xl bg-verde text-white transition-colors hover:bg-verde-dark"
+            >
+              <CameraIcon className="h-4 w-4" />
+            </button>
+          </div>
+        </Field>
+
         <Field label="Nombre" htmlFor="p-name" error={errores.name}>
           <input
             id="p-name"
@@ -279,6 +328,10 @@ export function ProductFormModal({
           </button>
         </div>
       </form>
+
+      {escaneando && (
+        <BarcodeScanner onDetected={onCodigoDetectado} onClose={() => setEscaneando(false)} />
+      )}
     </Modal>
   );
 }

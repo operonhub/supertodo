@@ -104,6 +104,7 @@ export default function CatalogoPage() {
         onIncrement={cart.increment}
         onDecrement={cart.decrement}
         onRemove={cart.remove}
+        onOrderSent={cart.clear}
       />
     </div>
   );

@@ -55,6 +55,13 @@ export const BUSINESS: BusinessConfig = {
     { name: 'Ariel', phone: '' },
     { name: 'Leo', phone: '' },
   ],
+
+  /** Se activan/desactivan desde Configuración. Débito/crédito arranca apagado. */
+  paymentMethods: [
+    { id: 'efectivo', label: 'Efectivo', enabled: true },
+    { id: 'transferencia', label: 'Transferencia / MODO', enabled: true },
+    { id: 'tarjeta', label: 'Débito o crédito', enabled: false },
+  ],
 };
 
 /** Dirección en una línea, que es como se usa casi siempre. */

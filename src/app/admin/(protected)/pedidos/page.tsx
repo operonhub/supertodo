@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { OrderDetail } from '@/components/admin/OrderDetail';
 import { PageHeader } from '@/components/admin/PageHeader';
-import { Badge, inputClass, selectClass } from '@/components/admin/ui';
+import { Badge, Toast, inputClass, selectClass } from '@/components/admin/ui';
 import { SearchIcon } from '@/components/icons';
 import { useHydrated, useOrders } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
@@ -36,6 +36,28 @@ export default function PedidosPage() {
 
   const [filters, setFilters] = useState<OrderFilters>(DEFAULT_FILTERS);
   const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  /**
+   * `setOrderStatus`/`setOrderPayment` van a Supabase y pueden fallar: si tira,
+   * el store no cambia (se queda con el valor anterior) y se avisa con un
+   * toast, en vez de asumir en silencio que el cambio se guardó.
+   */
+  const cambiarEstado = useCallback(async (id: string, status: Order['status']) => {
+    try {
+      await setOrderStatus(id, status);
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : 'No se pudo actualizar el estado.');
+    }
+  }, []);
+
+  const cambiarPago = useCallback(async (id: string, payment: Order['payment']) => {
+    try {
+      await setOrderPayment(id, payment);
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : 'No se pudo actualizar el pago.');
+    }
+  }, []);
 
   const visibles = useMemo(() => filterOrders(orders, filters), [orders, filters]);
 
@@ -206,7 +228,7 @@ export default function PedidosPage() {
                         <select
                           value={order.status}
                           aria-label={`Estado del pedido ${order.id}`}
-                          onChange={(e) => setOrderStatus(order.id, e.target.value as Order['status'])}
+                          onChange={(e) => cambiarEstado(order.id, e.target.value as Order['status'])}
                           className={`cursor-pointer rounded-full border-0 px-2.5 py-1 text-[11px] font-bold ${ORDER_STATUS_STYLE[order.status]}`}
                         >
                           {ORDER_STATUSES.map((s) => (
@@ -221,7 +243,7 @@ export default function PedidosPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            setOrderPayment(order.id, order.payment === 'pagado' ? 'falta_pagar' : 'pagado')
+                            cambiarPago(order.id, order.payment === 'pagado' ? 'falta_pagar' : 'pagado')
                           }
                           aria-label={`Marcar el pedido ${order.id} como ${
                             order.payment === 'pagado' ? 'falta pagar' : 'pagado'
@@ -274,7 +296,7 @@ export default function PedidosPage() {
                   <select
                     value={order.status}
                     aria-label={`Estado del pedido ${order.id}`}
-                    onChange={(e) => setOrderStatus(order.id, e.target.value as Order['status'])}
+                    onChange={(e) => cambiarEstado(order.id, e.target.value as Order['status'])}
                     className={`${selectClass} w-auto flex-1 text-xs`}
                   >
                     {ORDER_STATUSES.map((s) => (
@@ -287,7 +309,7 @@ export default function PedidosPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setOrderPayment(order.id, order.payment === 'pagado' ? 'falta_pagar' : 'pagado')
+                      cambiarPago(order.id, order.payment === 'pagado' ? 'falta_pagar' : 'pagado')
                     }
                     className="rounded-xl border border-verde/20 px-3 py-2 text-xs font-bold text-verde transition-colors hover:bg-verde/5"
                   >
@@ -311,9 +333,11 @@ export default function PedidosPage() {
       <OrderDetail
         order={detalle}
         onClose={cerrarDetalle}
-        onStatusChange={setOrderStatus}
-        onPaymentChange={setOrderPayment}
+        onStatusChange={cambiarEstado}
+        onPaymentChange={cambiarPago}
       />
+
+      <Toast message={aviso} onDone={() => setAviso(null)} />
     </>
   );
 }

@@ -1,8 +1,10 @@
 import type { Json, Tables, TablesInsert } from '@/lib/supabase/database.types';
-import type { BusinessConfig, Product, Promotion } from '@/types';
+import type { BusinessConfig, Order, OrderEvent, OrderItem, Product, Promotion } from '@/types';
 
 type ProductRow = Tables<'products'>;
 type ProductInsert = TablesInsert<'products'>;
+type OrderRow = Tables<'orders'>;
+type OrderInsert = TablesInsert<'orders'>;
 
 /**
  * El tipo `Json` generado exige index signature en cada objeto anidado, algo
@@ -29,6 +31,7 @@ export function rowToProduct(row: ProductRow): Product {
     active: row.active,
     stock: row.stock ?? undefined,
     suggestedProductIds: row.suggested_product_ids ?? undefined,
+    barcode: row.barcode ?? undefined,
   };
 }
 
@@ -46,7 +49,48 @@ export function productToRow(product: Product): ProductInsert {
     active: product.active ?? true,
     stock: product.stock ?? null,
     suggested_product_ids: product.suggestedProductIds ?? null,
+    barcode: product.barcode ?? null,
     updated_at: new Date().toISOString(),
+  };
+}
+
+/** Fila de Supabase → `Order` del dominio. */
+export function rowToOrder(row: OrderRow): Order {
+  return {
+    id: row.id,
+    createdAt: row.created_at,
+    customer: {
+      name: row.customer_name,
+      phone: row.customer_phone,
+      address: row.customer_address ?? undefined,
+    },
+    items: row.items as unknown as OrderItem[],
+    total: Number(row.total),
+    delivery: row.delivery as Order['delivery'],
+    paymentMethod: row.payment_method,
+    status: row.status as Order['status'],
+    payment: row.payment_status as Order['payment'],
+    notes: row.notes ?? undefined,
+    history: (row.history as unknown as OrderEvent[] | null) ?? [],
+  };
+}
+
+/** `Order` recién armado del lado del cliente → fila para el `insert` del checkout. */
+export function orderToRow(order: Order): OrderInsert {
+  return {
+    id: order.id,
+    created_at: order.createdAt,
+    customer_name: order.customer.name,
+    customer_phone: order.customer.phone,
+    customer_address: order.customer.address ?? null,
+    items: toJson(order.items),
+    total: order.total,
+    delivery: order.delivery,
+    payment_method: order.paymentMethod,
+    status: order.status,
+    payment_status: order.payment,
+    notes: order.notes ?? null,
+    history: toJson(order.history),
   };
 }
 

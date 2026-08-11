@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { CheckoutFields, CHECKOUT_VACÍO, validarCheckout, type CheckoutErrores, type CheckoutValue } from '@/components/CheckoutFields';
 import { CloseIcon, WhatsAppIcon } from '@/components/icons';
 import { QuantityStepper } from '@/components/QuantityStepper';
-import { BUSINESS, FULL_ADDRESS } from '@/config/business';
+import { useSettings } from '@/hooks/useStores';
+import { buildOrderItems, createOrder } from '@/lib/checkout';
 import { formatARS } from '@/lib/currency';
 import { describePromotion, getUnitPrice } from '@/lib/products';
 import { buildOrderMessage, buildWhatsAppUrl } from '@/lib/whatsapp';
@@ -16,10 +18,26 @@ type CartSheetProps = {
   onIncrement: (productId: string) => void;
   onDecrement: (productId: string) => void;
   onRemove: (productId: string) => void;
+  /** El pedido ya se guardó y se abrió WhatsApp: hay que vaciar el carrito. */
+  onOrderSent: () => void;
 };
 
-export function CartSheet({ open, summary, onClose, onIncrement, onDecrement, onRemove }: CartSheetProps) {
+export function CartSheet({
+  open,
+  summary,
+  onClose,
+  onIncrement,
+  onDecrement,
+  onRemove,
+  onOrderSent,
+}: CartSheetProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const settings = useSettings();
+
+  const [checkout, setCheckout] = useState<CheckoutValue>(CHECKOUT_VACÍO);
+  const [errores, setErrores] = useState<CheckoutErrores>({});
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
 
   /**
    * El foco entra al panel una sola vez, al abrirlo.
@@ -60,7 +78,60 @@ export function CartSheet({ open, summary, onClose, onIncrement, onDecrement, on
 
   if (!open || summary.itemCount === 0) return null;
 
-  const mensaje = buildOrderMessage(summary);
+  const métodosDisponibles = settings.paymentMethods.filter((m) => m.enabled);
+  const métodoElegido = métodosDisponibles.find((m) => m.id === checkout.paymentMethodId);
+
+  const items = buildOrderItems(summary);
+  const mensaje = buildOrderMessage({
+    customer: {
+      name: checkout.name,
+      address: checkout.delivery === 'reparto' ? checkout.address : undefined,
+    },
+    items,
+    total: summary.total,
+    paymentMethod: métodoElegido?.label ?? '',
+    delivery: checkout.delivery,
+  });
+
+  async function enviarPedido() {
+    const encontrados = validarCheckout(checkout, métodosDisponibles);
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
+    // Se reserva la pestaña ANTES del `await`: Safari bloquea los popups
+    // que se abren después de una espera asíncrona, así que hay que abrirla
+    // en blanco ahora mismo y recién después decidir a dónde apunta.
+    const nuevaVentana = window.open('', '_blank');
+
+    setErrorEnvio(null);
+    setEnviando(true);
+    try {
+      const order = await createOrder(summary, {
+        name: checkout.name,
+        phone: checkout.phone,
+        paymentMethod: métodoElegido?.label ?? 'No especificado',
+        delivery: checkout.delivery,
+        address: checkout.address,
+      });
+
+      const url = buildWhatsAppUrl(buildOrderMessage(order));
+      if (nuevaVentana) {
+        nuevaVentana.location.href = url;
+      } else {
+        window.location.href = url;
+      }
+
+      setCheckout(CHECKOUT_VACÍO);
+      setErrores({});
+      onOrderSent();
+      onClose();
+    } catch (err) {
+      nuevaVentana?.close();
+      setErrorEnvio(err instanceof Error ? err.message : 'No se pudo enviar el pedido. Probá de nuevo.');
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50">
@@ -145,6 +216,13 @@ export function CartSheet({ open, summary, onClose, onIncrement, onDecrement, on
             <span className="precio text-2xl font-extrabold">{formatARS(summary.total)}</span>
           </div>
 
+          <CheckoutFields
+            value={checkout}
+            onChange={setCheckout}
+            errors={errores}
+            paymentMethods={settings.paymentMethods}
+          />
+
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-verde/90">
             Así le llega el mensaje al local
           </p>
@@ -152,23 +230,24 @@ export function CartSheet({ open, summary, onClose, onIncrement, onDecrement, on
             <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#1f2c24]">{mensaje}</p>
           </div>
 
-          <a
-            href={buildWhatsAppUrl(mensaje)}
-            target="_blank"
-            rel="noopener noreferrer"
+          {errorEnvio && (
+            <p role="alert" className="mb-3 text-sm font-semibold text-rojo">
+              {errorEnvio}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={enviarPedido}
+            disabled={enviando}
             /* Texto verde oscuro y no blanco: el verde de WhatsApp con blanco
                encima da 1,98:1, muy por debajo del mínimo legible. Así el
                botón sigue siendo inconfundible y se lee. */
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-wsp py-3.5 text-[15px] font-extrabold text-verde-dark transition hover:brightness-105"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-wsp py-3.5 text-[15px] font-extrabold text-verde-dark transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <WhatsAppIcon className="h-5 w-5" />
-            Enviar pedido por WhatsApp
-          </a>
-
-          <p className="mt-3 text-center text-[11px] text-verde/90">
-            {BUSINESS.pickup.title} · {FULL_ADDRESS}
-          </p>
-          <p className="mt-0.5 text-center text-[11px] text-verde/90">{BUSINESS.pickup.detail}</p>
+            {enviando ? 'Enviando pedido…' : 'Enviar pedido por WhatsApp'}
+          </button>
         </div>
       </div>
     </div>

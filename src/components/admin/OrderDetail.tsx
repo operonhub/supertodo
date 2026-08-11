@@ -108,6 +108,7 @@ export function OrderDetail({
         <Badge className={ORDER_STATUS_STYLE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
         <Badge className={PAYMENT_STYLE[order.payment]}>{PAYMENT_LABEL[order.payment]}</Badge>
         <Badge className="bg-verde/10 text-verde">{DELIVERY_LABEL[order.delivery]}</Badge>
+        <Badge className="bg-verde/10 text-verde">{order.paymentMethod}</Badge>
         <span className="ml-auto text-[11px] text-verde/90">{formatDateTime(order.createdAt)}</span>
       </div>
 
@@ -120,6 +121,9 @@ export function OrderDetail({
         >
           {order.customer.phone}
         </a>
+        {order.delivery === 'reparto' && order.customer.address && (
+          <p className="mt-1 text-sm text-verde-dark">{order.customer.address}</p>
+        )}
       </section>
 
       <section className="mb-4 rounded-2xl bg-white p-4">
@@ -131,13 +135,16 @@ export function OrderDetail({
               <span className="min-w-0 flex-1">
                 {item.name}
                 <span className="text-[11px] text-verde/90"> · {item.unit}</span>
-                <span className="precio block text-[11px] text-verde/90">
-                  {formatARS(item.unitPrice)} c/u
+                <span className="flex flex-wrap items-center gap-1 text-[11px] text-verde/90">
+                  <span className="precio">{formatARS(item.unitPrice)} c/u</span>
+                  {item.promotionLabel && (
+                    <span className="rounded-full bg-dorado-soft px-1.5 py-0.5 text-[9px] font-extrabold text-dorado-dark">
+                      {item.promotionLabel}
+                    </span>
+                  )}
                 </span>
               </span>
-              <span className="precio shrink-0 font-extrabold">
-                {formatARS(item.unitPrice * item.quantity)}
-              </span>
+              <span className="precio shrink-0 font-extrabold">{formatARS(item.subtotal)}</span>
             </li>
           ))}
         </ul>
