@@ -40,6 +40,21 @@ export const BUSINESS: BusinessConfig = {
     title: 'Ofertas de la semana',
     detail: 'Precios vigentes hasta el sábado a las 21h',
   },
+
+  offerDeadline: '21:00',
+
+  /**
+   * Equipo que prepara los pedidos.
+   *
+   * Los teléfonos van **vacíos a propósito**: no se inventan números. Mientras
+   * estén en blanco, el panel muestra el botón de WhatsApp deshabilitado con la
+   * indicación de que falta cargarlo, en vez de generar un `wa.me` inválido.
+   * Se completan desde Configuración.
+   */
+  team: [
+    { name: 'Ariel', phone: '' },
+    { name: 'Leo', phone: '' },
+  ],
 };
 
 /** Dirección en una línea, que es como se usa casi siempre. */

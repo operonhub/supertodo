@@ -31,15 +31,30 @@ npx tsc --noEmit
 npm run lint
 ```
 
+## Las dos partes
+
+| Ruta | Qué es | Quién la usa |
+| --- | --- | --- |
+| `/` | Catálogo público. Se comparte por WhatsApp. | El cliente, desde el celular |
+| `/admin` | Panel interno: resumen, productos, ofertas, pedidos, catering y configuración. | El dueño, desde la computadora |
+
+> ⚠️ **`/admin` no tiene login todavía.** Está abierta para poder trabajar y validar
+> el flujo con el dueño. Antes de producción hay que protegerla: el chequeo de sesión
+> va en `src/app/admin/layout.tsx`, que envuelve a todas las pantallas del panel.
+
 ## Dónde tocar cada cosa
 
 | Quiero cambiar… | Archivo |
 | --- | --- |
-| Número de WhatsApp, dirección, horarios, banner de ofertas | `src/config/business.ts` |
+| Número de WhatsApp, dirección, horarios, equipo, banner | `src/config/business.ts` |
 | Productos, precios, ofertas, stock | `src/data/products.ts` |
+| Pedidos de muestra | `src/data/orders.ts` |
+| Consultas de catering de muestra | `src/data/catering.ts` |
 | Categorías y sus colores | `src/data/categories.ts` |
-| Texto del mensaje de WhatsApp | `src/lib/whatsapp.ts` |
+| Texto de los mensajes de WhatsApp | `src/lib/whatsapp.ts` |
 | Formato de precios y cálculo de descuento | `src/lib/currency.ts` |
+| Fechas y horas (zona Buenos Aires) | `src/lib/dates.ts` |
+| Filtros, orden y etiquetas de pedidos | `src/lib/orders.ts` |
 | Paleta y tipografía | `src/app/globals.css` |
 
 ### Ejemplo: cambiar el número de WhatsApp
@@ -69,12 +84,15 @@ Para sacarlo de oferta, se borra `previousPrice`. Para marcarlo sin stock,
 
 ```
 src/
-├─ app/            layout, página del catálogo y estilos globales
-├─ components/     UI (11 componentes) + íconos SVG inline
+├─ app/
+│  ├─ page.tsx     catálogo público
+│  └─ admin/       una carpeta por sección del panel
+├─ components/
+│  └─ admin/       componentes exclusivos del panel
 ├─ config/         datos del comercio — el único lugar donde viven
-├─ data/           catálogo mock y categorías
-├─ hooks/          useCart
-├─ lib/            moneda, carrito, mensaje de WhatsApp, store de localStorage
+├─ data/           mocks: catálogo, pedidos, catering, categorías
+├─ hooks/          useCart y lectura de los stores
+├─ lib/            moneda, fechas, pedidos, productos, WhatsApp, stores
 └─ types/          modelos de dominio
 ```
 
@@ -87,6 +105,20 @@ que migrar a Supabase es cambiar esa función.
 - **El carrito vive fuera de React**, en `src/lib/cartStore.ts`, y se lee con
   `useSyncExternalStore`. `localStorage` es un sistema externo: modelarlo así evita
   renders en cascada y hace que dos pestañas abiertas compartan el mismo pedido.
+- **Los datos del panel usan el mismo patrón** (`src/lib/createStore.ts` +
+  `src/lib/stores.ts`). Cuando exista la base de datos se reemplaza de dónde leen y
+  escriben esas funciones, y ninguna pantalla cambia.
+- **Los ítems de un pedido guardan nombre y precio congelados** al momento de la
+  compra, no una referencia al producto: si mañana sube el aceite, el pedido de hoy
+  tiene que seguir diciendo lo que costó hoy.
+- **El estado del pedido va separado del pago.** Un pedido puede estar entregado y
+  sin pagar (fiado), o pagado por transferencia y todavía sin preparar.
+- **Todas las fechas se formatean en `America/Argentina/Buenos_Aires`** con `Intl`,
+  nunca con `getHours()`. Y se calculan en el cliente: las páginas se prerenderizan
+  en el build, así que resolver "hoy" durante el render dejaría la fecha del deploy
+  congelada en el HTML.
+- **Los teléfonos del equipo arrancan vacíos** y el botón de WhatsApp queda
+  deshabilitado hasta cargarlos, en vez de generar un `wa.me` roto.
 - **El carrito arranca vacío en el primer pintado** y recién después aparece lo
   guardado. Es para que el HTML del servidor y el del cliente coincidan.
 - **El descuento se calcula, no se guarda.**
@@ -96,14 +128,27 @@ que migrar a Supabase es cambiar esa función.
 - **Los productos sin foto muestran un monograma** sobre el degradé de su categoría.
   El campo `imageUrl` ya está en el modelo: cuando haya fotos, se completa y listo.
 
+## Alcance de esta etapa
+
+El panel funciona con **datos de muestra guardados en el navegador**. Eso alcanza
+para que el dueño lo use y diga qué le falta, pero conviene tenerlo claro:
+
+- Lo que edita en su computadora **no llega al celular de un cliente**.
+- Los pedidos que se ven son inventados: **todavía no hay forma de que un pedido
+  real entre al panel**. Hoy el cliente aprieta "Enviar pedido" y eso abre un
+  WhatsApp; nadie lo registra en ningún lado.
+
 ## Para la etapa siguiente
 
-- **Panel de administración** para que el dueño cargue ofertas sin tocar código.
-- **Supabase**: mover `PRODUCTS` a una tabla y reemplazar `getProducts()`.
-- **Fotos reales** de producto (completar `imageUrl`; hoy hay placeholders).
-- **Dominio propio** y deploy (Vercel), para reemplazar `supertodo.com.ar/ofertas`
-  que hoy es sólo una propuesta.
-- **Registro de pedidos**: hoy el pedido viaja por WhatsApp y no queda guardado.
+1. **Supabase + login del panel.** Mover productos, pedidos y configuración a
+   tablas, y proteger `/admin`.
+2. **Cómo entran los pedidos.** Es la decisión de fondo: o se integra la API de
+   WhatsApp Business, o el catálogo crea el pedido en la base antes de abrir el
+   chat. La segunda es mucho más barata y da el 90% del valor.
+3. **Fotos reales** de producto: el campo `imageUrl` ya existe y el formulario ya
+   lo acepta; falta resolver dónde se suben.
+4. **Catering**, cuando el dueño defina menús, precios, seña y logística.
+5. **Dominio propio**, para reemplazar el link de Vercel.
 
 ## Referencia
 

@@ -8,24 +8,21 @@ import { OfferBanner } from '@/components/OfferBanner';
 import { ProductGrid } from '@/components/ProductGrid';
 import { StoreHeader } from '@/components/StoreHeader';
 import { StoreInfo } from '@/components/StoreInfo';
-import { getProducts } from '@/data/products';
 import { getCategoryName } from '@/data/categories';
 import { useCart } from '@/hooks/useCart';
+import { useProducts } from '@/hooks/useStores';
+import { isActive } from '@/lib/products';
+import { normalizeText } from '@/lib/text';
 import type { CategorySlug } from '@/types';
 
-/**
- * Normaliza para buscar: sin acentos y en minúscula, así "lacteos" encuentra
- * "Lácteos" y nadie se queda sin resultados por no poner la tilde.
- */
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
 export default function CatalogoPage() {
-  const products = useMemo(() => getProducts(), []);
+  // Los productos salen del store, no del mock directo: así lo que el dueño
+  // edita en el panel se ve acá. El valor del servidor sigue siendo el catálogo
+  // estático, con lo que el HTML prerenderizado no cambia.
+  const todos = useProducts();
+
+  // Un producto inactivo no existe para el cliente: ni se muestra ni se busca.
+  const products = useMemo(() => todos.filter(isActive), [todos]);
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategorySlug | null>(null);
@@ -41,7 +38,7 @@ export default function CatalogoPage() {
   }, [products]);
 
   const visibles = useMemo(() => {
-    const q = normalize(query.trim());
+    const q = normalizeText(query.trim());
 
     return products.filter((p) => {
       if (category && p.category !== category) return false;
@@ -49,7 +46,7 @@ export default function CatalogoPage() {
 
       // Se busca por nombre, presentación y categoría: la gente tipea
       // "fideos", "1kg" o "limpieza" indistintamente.
-      const heno = normalize(`${p.name} ${p.unit} ${getCategoryName(p.category)}`);
+      const heno = normalizeText(`${p.name} ${p.unit} ${getCategoryName(p.category)}`);
       return heno.includes(q);
     });
   }, [products, query, category]);
