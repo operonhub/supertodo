@@ -83,15 +83,22 @@ export function ProductFormModal({
   /** Todo el catálogo, para elegir las variantes sugeridas de entre lo que existe. */
   catalog: Product[];
   onClose: () => void;
-  onSave: (product: Product) => void;
+  /**
+   * Async porque termina en una escritura a Supabase: si tira, el modal se
+   * queda abierto con lo que la persona ya tipeó, en vez de cerrarse como si
+   * hubiera funcionado.
+   */
+  onSave: (product: Product) => Promise<void>;
 }) {
   const [form, setForm] = useState<FormState>(() => (product ? toForm(product) : VACÍO));
   const [errores, setErrores] = useState<Errores>({});
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
 
   const set = <K extends keyof FormState>(campo: K, valor: FormState[K]) =>
     setForm((f) => ({ ...f, [campo]: valor }));
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
 
     const encontrados = validar(form);
@@ -100,29 +107,39 @@ export function ProductFormModal({
 
     const stock = form.stock.trim() ? Number(form.stock) : undefined;
 
-    onSave({
-      id: product?.id ?? slugify(form.name),
-      name: form.name.trim(),
-      unit: form.unit.trim(),
-      category: form.category,
-      // `price` es el precio de lista. Las ofertas se administran sólo desde
-      // Ofertas, este formulario no las toca.
-      price: Number(form.price),
-      /**
-       * ⚠️ No borrar: este formulario arma el producto entero y `upsertProduct`
-       * reemplaza la fila completa. Sin re-adjuntar la promoción acá, editar el
-       * nombre o el precio de un producto le borraría la oferta en silencio.
-       */
-      ...(product?.promotion ? { promotion: product.promotion } : {}),
-      ...(form.imageUrl.trim() ? { imageUrl: form.imageUrl.trim() } : {}),
-      ...(stock !== undefined ? { stock } : {}),
-      ...(form.suggestedProductIds.length > 0
-        ? { suggestedProductIds: form.suggestedProductIds }
-        : {}),
-      active: form.active,
-      // Sin control de stock el producto se asume disponible.
-      available: stock === undefined ? true : stock > 0,
-    });
+    setErrorGuardado(null);
+    setGuardando(true);
+    try {
+      await onSave({
+        id: product?.id ?? slugify(form.name),
+        name: form.name.trim(),
+        unit: form.unit.trim(),
+        category: form.category,
+        // `price` es el precio de lista. Las ofertas se administran sólo desde
+        // Ofertas, este formulario no las toca.
+        price: Number(form.price),
+        /**
+         * ⚠️ No borrar: este formulario arma el producto entero y `upsertProduct`
+         * reemplaza la fila completa. Sin re-adjuntar la promoción acá, editar el
+         * nombre o el precio de un producto le borraría la oferta en silencio.
+         */
+        ...(product?.promotion ? { promotion: product.promotion } : {}),
+        ...(form.imageUrl.trim() ? { imageUrl: form.imageUrl.trim() } : {}),
+        ...(stock !== undefined ? { stock } : {}),
+        ...(form.suggestedProductIds.length > 0
+          ? { suggestedProductIds: form.suggestedProductIds }
+          : {}),
+        active: form.active,
+        // Sin control de stock el producto se asume disponible.
+        available: stock === undefined ? true : stock > 0,
+      });
+      // Si `onSave` no tiró, el llamador cierra el modal — no hay nada más
+      // que hacer acá.
+    } catch (err) {
+      setErrorGuardado(err instanceof Error ? err.message : 'No se pudo guardar. Probá de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -238,17 +255,25 @@ export function ProductFormModal({
 
         </div>
 
+        {errorGuardado && (
+          <p role="alert" className="mb-3 text-sm font-semibold text-rojo">
+            {errorGuardado}
+          </p>
+        )}
+
         <div className="flex gap-2">
           <button
             type="submit"
-            className="flex-1 rounded-xl bg-verde px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-verde-dark"
+            disabled={guardando}
+            className="flex-1 rounded-xl bg-verde px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-verde-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Guardar
+            {guardando ? 'Guardando…' : 'Guardar'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-verde/20 px-5 py-2.5 text-sm font-bold text-verde transition-colors hover:bg-verde/5"
+            disabled={guardando}
+            className="rounded-xl border border-verde/20 px-5 py-2.5 text-sm font-bold text-verde transition-colors hover:bg-verde/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancelar
           </button>

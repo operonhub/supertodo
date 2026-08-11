@@ -10,7 +10,7 @@ import { CATEGORIES } from '@/data/categories';
 import { useHydrated, useProducts } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
 import { describePromotion, getUnitPrice, hasPromotion, isActive, setPromotion } from '@/lib/products';
-import { productStore } from '@/lib/stores';
+import { upsertProducts } from '@/lib/stores';
 import { normalizeText } from '@/lib/text';
 import type { Product, Promotion } from '@/types';
 
@@ -30,6 +30,7 @@ export default function OfertasPage() {
   const [cambios, setCambios] = useState<Record<string, Product>>({});
   const [query, setQuery] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
+  const [publicando, setPublicando] = useState(false);
 
   const sucio = Object.keys(cambios).length > 0;
 
@@ -65,12 +66,26 @@ export default function OfertasPage() {
     });
   }
 
-  const publicar = () => {
-    productStore.set(borrador);
-    setCambios({});
-    setAviso(
-      `Ofertas publicadas · ${enOferta.length} ${enOferta.length === 1 ? 'producto' : 'productos'}`,
-    );
+  const publicar = async () => {
+    // Un solo upsert con los productos tocados, no el catálogo entero: no
+    // hace falta reescribir filas que no cambiaron.
+    const tocados = Object.values(cambios);
+    const cantidadEnOferta = enOferta.length;
+
+    setPublicando(true);
+    try {
+      await upsertProducts(tocados);
+      setCambios({});
+      setAviso(
+        `Ofertas publicadas · ${cantidadEnOferta} ${cantidadEnOferta === 1 ? 'producto' : 'productos'}`,
+      );
+    } catch (err) {
+      // `cambios` queda intacto a propósito: el banner de "sin publicar" sigue
+      // ahí y nada de lo que se tocó se pierde.
+      setAviso(err instanceof Error ? err.message : 'No se pudieron publicar las ofertas.');
+    } finally {
+      setPublicando(false);
+    }
   };
 
   const copiarLink = async () => {
@@ -103,10 +118,10 @@ export default function OfertasPage() {
             <button
               type="button"
               onClick={publicar}
-              disabled={!sucio}
+              disabled={!sucio || publicando}
               className="rounded-xl bg-dorado px-5 py-2.5 text-sm font-extrabold text-verde-dark shadow-card transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {sucio ? 'Publicar ofertas' : 'Todo publicado'}
+              {publicando ? 'Publicando…' : sucio ? 'Publicar ofertas' : 'Todo publicado'}
             </button>
           </>
         }

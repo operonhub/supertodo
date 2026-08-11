@@ -50,8 +50,11 @@ export default function ProductosPage() {
 
   const cerrarModal = useCallback(() => setModalAbierto(false), []);
 
-  const guardar = (product: Product) => {
-    upsertProduct(product);
+  const guardar = async (product: Product) => {
+    // Si `upsertProduct` tira, el error sube al modal (que lo atrapa y lo
+    // muestra) y este bloque no sigue: el modal se queda abierto con lo que
+    // la persona tipeó, no se cierra como si hubiera funcionado.
+    await upsertProduct(product);
     setModalAbierto(false);
     setAviso(editando ? 'Producto actualizado' : 'Producto agregado');
   };

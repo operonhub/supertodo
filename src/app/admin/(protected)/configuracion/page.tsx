@@ -18,6 +18,7 @@ export default function ConfiguracionPage() {
    */
   const [cambios, setCambios] = useState<Partial<BusinessConfig> | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   const sucio = cambios !== null;
   const form: BusinessConfig = cambios ? { ...settings, ...cambios } : settings;
@@ -33,11 +34,22 @@ export default function ConfiguracionPage() {
     );
   }
 
-  function guardar(e: React.FormEvent) {
+  async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (cambios) updateSettings(cambios);
-    setCambios(null);
-    setAviso('Configuración guardada');
+    if (!cambios) return;
+
+    setGuardando(true);
+    try {
+      await updateSettings(cambios);
+      setCambios(null);
+      setAviso('Configuración guardada');
+    } catch (err) {
+      // `cambios` queda como estaba: el botón sigue en "Guardar cambios" y
+      // nada de lo que se tocó se pierde.
+      setAviso(err instanceof Error ? err.message : 'No se pudo guardar la configuración.');
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -48,10 +60,10 @@ export default function ConfiguracionPage() {
         actions={
           <button
             type="submit"
-            disabled={!sucio}
+            disabled={!sucio || guardando}
             className="rounded-xl bg-verde px-5 py-2.5 text-sm font-extrabold text-white shadow-card transition-colors hover:bg-verde-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {sucio ? 'Guardar cambios' : 'Todo guardado'}
+            {guardando ? 'Guardando…' : sucio ? 'Guardar cambios' : 'Todo guardado'}
           </button>
         }
       />
@@ -219,10 +231,10 @@ export default function ConfiguracionPage() {
           )}
         </section>
 
-        {/* Nota honesta sobre el alcance: sin backend esto no sale de esta computadora. */}
+        {/* Ya no es "este navegador": desde que se conectó Supabase, esto se ve
+            desde cualquier dispositivo (sin tiempo real: hace falta refrescar). */}
         <p className="text-[11px] leading-relaxed text-verde/90 lg:col-span-2">
-          Por ahora la configuración se guarda en este navegador. Cuando conectemos la base de datos
-          va a quedar guardada en el servidor y a verse desde cualquier dispositivo.
+          Esta configuración se guarda en el servidor y la ve cualquiera que entre a la tienda.
         </p>
       </div>
 

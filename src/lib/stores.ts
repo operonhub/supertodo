@@ -1,71 +1,130 @@
 import { BUSINESS } from '@/config/business';
 import { buildSeedOrders } from '@/data/orders';
-import { PRODUCTS } from '@/data/products';
 import { createPersistentStore } from '@/lib/createStore';
+import { productToRow, rowToBusinessConfig, rowToProduct, toJson } from '@/lib/supabase/mappers';
+import { createClient } from '@/lib/supabase/client';
 import type { BusinessConfig, Order, Product } from '@/types';
 
 /**
- * Los tres stores del panel.
+ * Productos y configuración viven en Supabase; pedidos siguen en localStorage
+ * (ver `orderStore` más abajo — todavía no está definido cómo entra un pedido
+ * real al panel, migrarlo ahora movería datos que van a cambiar de forma).
  *
- * Cada uno arranca del mock correspondiente y guarda los cambios en
- * localStorage. Cuando exista la base de datos, lo único que cambia es de dónde
- * salen los datos: las pantallas ya leen y escriben a través de estas funciones.
- *
- * Nota honesta sobre el alcance: localStorage es por navegador. Los cambios que
- * haga el dueño en su computadora no llegan al celular de un cliente. Sirve para
- * validar el flujo con él, no como producción.
+ * Sin tiempo real: cada store trae los datos una vez al montar y se
+ * actualiza a mano después de cada escritura propia. Si el dueño edita un
+ * precio en su computadora, un cliente que ya tenía la tienda abierta no lo
+ * ve hasta refrescar.
  */
 
 const esObjeto = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
+type Listener = () => void;
+
 /* ================================================================
-   PRODUCTOS
+   PRODUCTOS — Supabase
 ================================================================ */
 
-export const productStore = createPersistentStore<Product[]>({
-  /**
-   * v2: el modelo de ofertas cambió de `previousPrice` a `promotion`. Subir la
-   * versión descarta lo guardado con el modelo viejo, que si no se quedaría sin
-   * ofertas en silencio en los navegadores que ya abrieron el panel.
-   */
-  key: 'supertodo.productos.v2',
-  seed: PRODUCTS,
-  load(stored, seed) {
-    if (!Array.isArray(stored)) return seed;
+/**
+ * Referencia estable para "antes de cargar": `getServerSnapshot` y el primer
+ * pintado tienen que devolver siempre el mismo array, o `useSyncExternalStore`
+ * entra en un loop de renders. Por eso no es `[]` literal en cada llamada.
+ */
+const SIN_PRODUCTOS: Product[] = [];
 
-    // Se valida lo mínimo para no romper la grilla con datos viejos: si algo no
-    // tiene forma de producto, se descarta esa fila y no todo el catálogo.
-    const productos = stored.filter(
-      (p): p is Product =>
-        esObjeto(p) &&
-        typeof p.id === 'string' &&
-        typeof p.name === 'string' &&
-        typeof p.price === 'number' &&
-        Number.isFinite(p.price),
-    );
+let productSnapshot: Product[] = SIN_PRODUCTOS;
+let productsInicializado = false;
+const productListeners = new Set<Listener>();
 
-    return productos.length > 0 ? productos : seed;
-  },
-});
-
-export function upsertProduct(product: Product) {
-  productStore.update((productos) => {
-    const i = productos.findIndex((p) => p.id === product.id);
-    if (i === -1) return [product, ...productos];
-
-    const copia = productos.slice();
-    copia[i] = product;
-    return copia;
-  });
+function emitProducts() {
+  for (const listener of productListeners) listener();
 }
 
-export function removeProduct(id: string) {
-  productStore.update((productos) => productos.filter((p) => p.id !== id));
+async function fetchProducts() {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('products').select('*').order('name');
+
+  if (error) {
+    // Sin conexión o RLS bloqueando: el catálogo sigue mostrando lo que ya
+    // tenía (el mock, si es la primera carga) en vez de romper la pantalla.
+    console.error('No se pudieron cargar los productos:', error.message);
+    return;
+  }
+
+  productSnapshot = data.map(rowToProduct);
+  emitProducts();
+}
+
+export const productStore = {
+  subscribe(listener: Listener) {
+    productListeners.add(listener);
+
+    if (!productsInicializado) {
+      productsInicializado = true;
+      fetchProducts();
+    }
+
+    return () => {
+      productListeners.delete(listener);
+    };
+  },
+  getSnapshot: () => productSnapshot,
+  // El servidor nunca tiene sesión de fetch: arranca vacío, igual que antes
+  // arrancaba vacío mientras no se leía localStorage.
+  getServerSnapshot: () => SIN_PRODUCTOS,
+};
+
+/** Crea o actualiza un producto. Tira si la escritura falla — nunca miente con un éxito optimista. */
+export async function upsertProduct(product: Product): Promise<void> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('products')
+    .upsert(productToRow(product))
+    .select()
+    .single();
+
+  if (error) throw new Error(`No se pudo guardar el producto: ${error.message}`);
+
+  const guardado = rowToProduct(data);
+  const i = productSnapshot.findIndex((p) => p.id === guardado.id);
+  productSnapshot = i === -1 ? [guardado, ...productSnapshot] : productSnapshot.map((p, idx) => (idx === i ? guardado : p));
+  emitProducts();
+}
+
+/**
+ * Guarda varios productos de una sola vez (la tanda de ofertas del día).
+ * Un solo `upsert` con un array es una sola ida y vuelta a la base, no una
+ * por producto.
+ */
+export async function upsertProducts(products: Product[]): Promise<void> {
+  if (products.length === 0) return;
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('products')
+    .upsert(products.map(productToRow))
+    .select();
+
+  if (error) throw new Error(`No se pudieron guardar las ofertas: ${error.message}`);
+
+  const guardados = new Map(data.map((row) => [row.id, rowToProduct(row)]));
+  productSnapshot = productSnapshot.map((p) => guardados.get(p.id) ?? p);
+  emitProducts();
+}
+
+export async function removeProduct(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('products').delete().eq('id', id);
+
+  if (error) throw new Error(`No se pudo borrar el producto: ${error.message}`);
+
+  productSnapshot = productSnapshot.filter((p) => p.id !== id);
+  emitProducts();
 }
 
 /* ================================================================
-   PEDIDOS
+   PEDIDOS — localStorage, sin cambios
+   (fuera de alcance de esta migración: ver nota arriba)
 ================================================================ */
 
 /**
@@ -120,21 +179,60 @@ export function setOrderPayment(id: string, payment: Order['payment']) {
 }
 
 /* ================================================================
-   CONFIGURACIÓN DEL COMERCIO
+   CONFIGURACIÓN DEL COMERCIO — Supabase, fila única
 ================================================================ */
 
-export const settingsStore = createPersistentStore<BusinessConfig>({
-  key: 'supertodo.config.v1',
-  seed: BUSINESS,
-  load(stored, seed) {
-    if (!esObjeto(stored)) return seed;
+let settingsSnapshot: BusinessConfig = BUSINESS;
+let settingsInicializado = false;
+const settingsListeners = new Set<Listener>();
 
-    // Se mezcla sobre el default: si mañana se agrega un campo nuevo a la
-    // configuración, los que ya tienen algo guardado no se quedan sin él.
-    return { ...seed, ...(stored as Partial<BusinessConfig>) };
+function emitSettings() {
+  for (const listener of settingsListeners) listener();
+}
+
+async function fetchSettings() {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('business_config').select('data').eq('id', 1).maybeSingle();
+
+  if (error || !data) {
+    console.error('No se pudo cargar la configuración:', error?.message ?? 'fila vacía');
+    return;
+  }
+
+  settingsSnapshot = rowToBusinessConfig(data.data, BUSINESS);
+  emitSettings();
+}
+
+export const settingsStore = {
+  subscribe(listener: Listener) {
+    settingsListeners.add(listener);
+
+    if (!settingsInicializado) {
+      settingsInicializado = true;
+      fetchSettings();
+    }
+
+    return () => {
+      settingsListeners.delete(listener);
+    };
   },
-});
+  getSnapshot: () => settingsSnapshot,
+  // Mismo valor que el seed original: el HTML del servidor se arma con la
+  // config por defecto, igual que antes con localStorage.
+  getServerSnapshot: () => BUSINESS,
+};
 
-export function updateSettings(cambios: Partial<BusinessConfig>) {
-  settingsStore.update((actual) => ({ ...actual, ...cambios }));
+export async function updateSettings(cambios: Partial<BusinessConfig>): Promise<void> {
+  const próxima = { ...settingsSnapshot, ...cambios };
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('business_config')
+    .update({ data: toJson(próxima), updated_at: new Date().toISOString() })
+    .eq('id', 1);
+
+  if (error) throw new Error(`No se pudo guardar la configuración: ${error.message}`);
+
+  settingsSnapshot = próxima;
+  emitSettings();
 }

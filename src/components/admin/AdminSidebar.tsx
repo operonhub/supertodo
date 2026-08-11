@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ClipboardIcon,
   ExternalIcon,
   LayoutIcon,
+  LogOutIcon,
   PackageIcon,
   PartyIcon,
   SettingsIcon,
@@ -13,6 +14,7 @@ import {
 } from '@/components/icons';
 import { Logo } from '@/components/Logo';
 import { useSettings } from '@/hooks/useStores';
+import { createClient } from '@/lib/supabase/client';
 
 type Item = {
   href: string;
@@ -38,7 +40,17 @@ const ITEMS: Item[] = [
  */
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const settings = useSettings();
+
+  async function cerrarSesión() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    // `refresh()` para que el proxy vea la sesión ya cerrada en la próxima
+    // navegación, no una respuesta cacheada de cuando todavía había sesión.
+    router.push('/admin/login');
+    router.refresh();
+  }
 
   return (
     <aside className="shrink-0 bg-verde-dark text-white lg:min-h-dvh lg:w-60">
@@ -80,6 +92,14 @@ export function AdminSidebar() {
           <ExternalIcon className="h-3.5 w-3.5" />
           Ver la tienda
         </Link>
+        <button
+          type="button"
+          onClick={cerrarSesión}
+          className="flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <LogOutIcon className="h-3.5 w-3.5" />
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   );
