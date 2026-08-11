@@ -13,9 +13,17 @@ type ProductCardProps = {
   quantity: number;
   onIncrement: () => void;
   onDecrement: () => void;
+  /** Variantes sugeridas ya resueltas contra el catálogo (ver `resolveSuggestions`). */
+  suggestions: Product[];
 };
 
-export function ProductCard({ product, quantity, onIncrement, onDecrement }: ProductCardProps) {
+export function ProductCard({
+  product,
+  quantity,
+  onIncrement,
+  onDecrement,
+  suggestions,
+}: ProductCardProps) {
   const promo = product.promotion;
   const precioFinal = getUnitPrice(product);
 
@@ -57,6 +65,15 @@ export function ProductCard({ product, quantity, onIncrement, onDecrement }: Pro
       <p className="mt-0.5 text-[11px] text-verde/80">
         {product.unit} · {getCategoryName(product.category)}
       </p>
+
+      {/* Variantes que cargó el dueño: texto, no botón. Le avisan al cliente que
+          había otra opción por si esto no está, sin reemplazar al producto. */}
+      {suggestions.length > 0 && (
+        <p className="mt-1 text-[11px] leading-tight text-verde/70">
+          <span className="font-semibold">Alternativas:</span>{' '}
+          {suggestions.map((s) => s.name).join(' · ')}
+        </p>
+      )}
 
       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
         <div>

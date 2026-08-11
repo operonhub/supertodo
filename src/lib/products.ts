@@ -98,3 +98,17 @@ export function withSyncedStock(product: Product): Product {
   if (product.stock === undefined) return product;
   return { ...product, available: product.stock > 0 };
 }
+
+/**
+ * Resuelve los ids de variantes sugeridas contra el catálogo.
+ *
+ * `byId` conviene armarlo sólo con los productos que el cliente puede ver: así
+ * una sugerencia que quedó apuntando a algo borrado o dado de baja simplemente
+ * no aparece, sin necesidad de limpiar nada a mano.
+ */
+export function resolveSuggestions(product: Product, byId: Map<string, Product>): Product[] {
+  if (!product.suggestedProductIds?.length) return [];
+  return product.suggestedProductIds
+    .map((id) => byId.get(id))
+    .filter((p): p is Product => p !== undefined);
+}

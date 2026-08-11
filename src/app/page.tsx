@@ -37,6 +37,14 @@ export default function CatalogoPage() {
     }, {});
   }, [products]);
 
+  // Índice del catálogo visible, para que cada card resuelva sus variantes
+  // sugeridas. Se arma sólo con los activos: una sugerencia a algo dado de baja
+  // se cae sola y nunca se le muestra al cliente.
+  const catalogById = useMemo(
+    () => new Map(products.map((p) => [p.id, p])),
+    [products],
+  );
+
   const visibles = useMemo(() => {
     const q = normalizeText(query.trim());
 
@@ -81,6 +89,7 @@ export default function CatalogoPage() {
           onDecrement={cart.decrement}
           query={query}
           onClearFilters={limpiarFiltros}
+          catalogById={catalogById}
         />
 
         <StoreInfo />

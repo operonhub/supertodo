@@ -2,6 +2,7 @@
 
 import { ProductCard } from '@/components/ProductCard';
 import { SearchIcon } from '@/components/icons';
+import { resolveSuggestions } from '@/lib/products';
 import type { Product } from '@/types';
 
 type ProductGridProps = {
@@ -12,6 +13,12 @@ type ProductGridProps = {
   /** Lo que se buscó, para poder repetirlo en el mensaje de "sin resultados". */
   query: string;
   onClearFilters: () => void;
+  /**
+   * Catálogo indexado por id, para resolver las variantes sugeridas. Viene de la
+   * página porque una sugerencia puede apuntar a un producto de otra categoría o
+   * fuera del filtro actual: no alcanza con `products`.
+   */
+  catalogById: Map<string, Product>;
 };
 
 export function ProductGrid({
@@ -21,6 +28,7 @@ export function ProductGrid({
   onDecrement,
   query,
   onClearFilters,
+  catalogById,
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
@@ -54,6 +62,7 @@ export function ProductGrid({
             quantity={quantityOf(product.id)}
             onIncrement={() => onIncrement(product.id)}
             onDecrement={() => onDecrement(product.id)}
+            suggestions={resolveSuggestions(product, catalogById)}
           />
         </li>
       ))}

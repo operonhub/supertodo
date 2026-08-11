@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SuggestedProductsPicker } from '@/components/admin/SuggestedProductsPicker';
 import { Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
 import { CATEGORIES } from '@/data/categories';
 import { slugify } from '@/lib/text';
@@ -15,6 +16,8 @@ interface FormState {
   imageUrl: string;
   stock: string;
   active: boolean;
+  /** Ids de las variantes sugeridas. Se editan con `SuggestedProductsPicker`. */
+  suggestedProductIds: string[];
 }
 
 const VACÍO: FormState = {
@@ -25,6 +28,7 @@ const VACÍO: FormState = {
   imageUrl: '',
   stock: '',
   active: true,
+  suggestedProductIds: [],
 };
 
 function toForm(product: Product): FormState {
@@ -36,6 +40,7 @@ function toForm(product: Product): FormState {
     imageUrl: product.imageUrl ?? '',
     stock: product.stock === undefined ? '' : String(product.stock),
     active: product.active !== false,
+    suggestedProductIds: product.suggestedProductIds ?? [],
   };
 }
 
@@ -69,11 +74,14 @@ function validar(form: FormState): Errores {
  */
 export function ProductFormModal({
   product,
+  catalog,
   onClose,
   onSave,
 }: {
   /** `null` = alta. */
   product: Product | null;
+  /** Todo el catálogo, para elegir las variantes sugeridas de entre lo que existe. */
+  catalog: Product[];
   onClose: () => void;
   onSave: (product: Product) => void;
 }) {
@@ -108,6 +116,9 @@ export function ProductFormModal({
       ...(product?.promotion ? { promotion: product.promotion } : {}),
       ...(form.imageUrl.trim() ? { imageUrl: form.imageUrl.trim() } : {}),
       ...(stock !== undefined ? { stock } : {}),
+      ...(form.suggestedProductIds.length > 0
+        ? { suggestedProductIds: form.suggestedProductIds }
+        : {}),
       active: form.active,
       // Sin control de stock el producto se asume disponible.
       available: stock === undefined ? true : stock > 0,
@@ -200,6 +211,21 @@ export function ProductFormModal({
             placeholder="https://…"
           />
         </Field>
+
+        <div className="mb-3">
+          <p className="mb-1 text-xs font-semibold text-verde/90">Variantes sugeridas</p>
+          <p className="mb-2 text-[11px] text-verde/90">
+            Hasta 2 productos que el cliente ve como opción si este no está. Aparecen
+            en la ficha, no reemplazan al producto.
+          </p>
+          <SuggestedProductsPicker
+            ownId={product?.id}
+            ownName={form.name.trim() || 'este producto'}
+            catalog={catalog}
+            value={form.suggestedProductIds}
+            onChange={(ids) => set('suggestedProductIds', ids)}
+          />
+        </div>
 
         <div className="my-4 rounded-xl bg-white p-4">
           <div className="flex items-center justify-between gap-3">

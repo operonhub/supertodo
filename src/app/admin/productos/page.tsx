@@ -196,6 +196,7 @@ export default function ProductosPage() {
         <ProductFormModal
           key={editando?.id ?? 'nuevo'}
           product={editando}
+          catalog={products}
           onClose={cerrarModal}
           onSave={guardar}
         />

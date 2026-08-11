@@ -76,6 +76,13 @@ export interface Product {
    * con este número al guardar.
    */
   stock?: number;
+  /**
+   * Hasta 2 productos alternativos, elegidos a mano por el dueño. Pensado para
+   * cuando no hay control de stock real: si lo que el cliente pidió no está,
+   * ya vio en la ficha que había otra opción. Se muestra como texto, no como
+   * botón — no reemplaza al producto, lo complementa.
+   */
+  suggestedProductIds?: string[];
 }
 
 /** Lo único que se persiste del carrito: qué y cuánto. */
