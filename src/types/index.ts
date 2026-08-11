@@ -21,20 +21,38 @@ export interface Category {
   name: string;
 }
 
+/**
+ * Tipos de oferta que hace el almacén.
+ *
+ * `percent` baja el precio unitario. `3x2` y `2x1` **no lo tocan**: son promos
+ * por cantidad, donde cada N-ésima unidad sale gratis y el ahorro aparece recién
+ * al calcular la línea del carrito.
+ */
+export type PromotionType = 'percent' | '3x2' | '2x1';
+
+export interface Promotion {
+  type: PromotionType;
+  /** Sólo para `percent`: 10, 20, 30, o un valor cargado a mano (1-99). */
+  percent?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
   /** Presentación: "900 ml", "1 kg", "x4". Se muestra debajo del nombre. */
   unit: string;
   category: CategorySlug;
-  /** Precio vigente en pesos. Es el que se cobra y el que suma al total. */
-  price: number;
   /**
-   * Precio tachado. Sólo se completa cuando el producto está en oferta;
-   * el porcentaje de descuento se deriva de estos dos números
-   * (ver `getDiscountPercent`) para que nunca queden desincronizados.
+   * Precio de lista, en pesos. **Nunca lo pisa una oferta.**
+   *
+   * Lo que se termina cobrando se deriva de este número y de `promotion`
+   * (ver `getUnitPrice` y `getLineSubtotal`): guardar el precio rebajado acá
+   * haría imposible saber de cuánto se partió, y las promos por cantidad
+   * —3x2, 2x1— ni siquiera cambian el precio unitario.
    */
-  previousPrice?: number;
+  price: number;
+  /** Promoción vigente. Sin promoción, el producto se vende a `price`. */
+  promotion?: Promotion;
   /**
    * Foto real del producto. Mientras esté vacío se dibuja un placeholder
    * derivado de la categoría, así el catálogo se ve consistente aunque

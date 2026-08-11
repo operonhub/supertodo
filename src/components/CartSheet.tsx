@@ -5,6 +5,7 @@ import { CloseIcon, WhatsAppIcon } from '@/components/icons';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { BUSINESS, FULL_ADDRESS } from '@/config/business';
 import { formatARS } from '@/lib/currency';
+import { describePromotion, getUnitPrice } from '@/lib/products';
 import { buildOrderMessage, buildWhatsAppUrl } from '@/lib/whatsapp';
 import type { CartSummary } from '@/types';
 
@@ -99,8 +100,19 @@ export function CartSheet({ open, summary, onClose, onIncrement, onDecrement, on
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-semibold">{line.product.name}</p>
-                  <p className="text-[11px] text-verde/90">
-                    {line.product.unit} · {formatARS(line.product.price)} c/u
+                  {/* La etiqueta de promo va acá adentro y no como columna aparte:
+                      con 3x2 el subtotal es menor que cantidad × precio, y sin
+                      esta marca parece un error de cuenta. `flex-wrap` la baja de
+                      línea en pantallas angostas en vez de desbordar la fila. */}
+                  <p className="flex flex-wrap items-center gap-1 text-[11px] text-verde/90">
+                    <span>
+                      {line.product.unit} · {formatARS(getUnitPrice(line.product))} c/u
+                    </span>
+                    {line.product.promotion && (
+                      <span className="rounded-full bg-dorado-soft px-1.5 py-0.5 text-[9px] font-extrabold text-dorado-dark">
+                        {describePromotion(line.product.promotion)}
+                      </span>
+                    )}
                   </p>
                 </div>
 

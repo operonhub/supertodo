@@ -1,6 +1,7 @@
 import { BUSINESS, FULL_ADDRESS } from '@/config/business';
 import { formatARS } from '@/lib/currency';
 import { formatDateTime } from '@/lib/dates';
+import { describePromotion } from '@/lib/products';
 import type { CartSummary, Order, TeamMember } from '@/types';
 
 /**
@@ -11,9 +12,12 @@ import type { CartSummary, Order, TeamMember } from '@/types';
  * diferir.
  */
 export function buildOrderMessage(summary: CartSummary): string {
-  const lineas = summary.lines.map(
-    (l) => `• ${l.quantity}x ${l.product.name} (${l.product.unit}) — ${formatARS(l.subtotal)}`,
-  );
+  const lineas = summary.lines.map((l) => {
+    // La promo se nombra en la línea: con un 3x2 el subtotal no es cantidad ×
+    // precio, y sin la aclaración el almacén lo lee como un error de cuenta.
+    const promo = l.product.promotion ? ` [${describePromotion(l.product.promotion)}]` : '';
+    return `• ${l.quantity}x ${l.product.name} (${l.product.unit})${promo} — ${formatARS(l.subtotal)}`;
+  });
 
   return [
     'Hola, quiero hacer este pedido:',

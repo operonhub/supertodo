@@ -24,7 +24,12 @@ const esObjeto = (v: unknown): v is Record<string, unknown> =>
 ================================================================ */
 
 export const productStore = createPersistentStore<Product[]>({
-  key: 'supertodo.productos.v1',
+  /**
+   * v2: el modelo de ofertas cambió de `previousPrice` a `promotion`. Subir la
+   * versión descarta lo guardado con el modelo viejo, que si no se quedaría sin
+   * ofertas en silencio en los navegadores que ya abrieron el panel.
+   */
+  key: 'supertodo.productos.v2',
   seed: PRODUCTS,
   load(stored, seed) {
     if (!Array.isArray(stored)) return seed;

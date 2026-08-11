@@ -4,7 +4,8 @@ import { PlusIcon } from '@/components/icons';
 import { ProductImage } from '@/components/ProductImage';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { getCategoryName } from '@/data/categories';
-import { formatARS, getDiscountPercent } from '@/lib/currency';
+import { formatARS } from '@/lib/currency';
+import { describePromotion, explainPromotion, getUnitPrice } from '@/lib/products';
 import type { Product } from '@/types';
 
 type ProductCardProps = {
@@ -15,17 +16,31 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product, quantity, onIncrement, onDecrement }: ProductCardProps) {
-  const descuento = getDiscountPercent(product.price, product.previousPrice);
-  const enOferta = descuento > 0;
+  const promo = product.promotion;
+  const precioFinal = getUnitPrice(product);
+
+  /**
+   * Sólo el descuento porcentual baja el precio unitario, y sólo ahí se tacha el
+   * precio de lista. En 3x2 y 2x1 la unidad vale lo mismo: tacharla sería
+   * decirle al cliente que bajó algo que no bajó.
+   */
+  const bajaElUnitario = precioFinal < product.price;
 
   return (
     <article className="flex h-full flex-col rounded-2xl bg-white p-2.5 shadow-card transition-shadow hover:shadow-lg">
       <div className="relative mb-2.5">
         <ProductImage product={product} className="h-24 rounded-xl sm:h-32" />
 
-        {enOferta && (
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-rojo px-2 py-0.5 text-[10px] font-extrabold text-white">
-            −{descuento}%
+        {promo && (
+          <span
+            title={explainPromotion(promo)}
+            className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+              // Rojo para el descuento, dorado para las promos por cantidad: son
+              // dos cosas distintas y conviene que se lean distinto de un vistazo.
+              promo.type === 'percent' ? 'bg-rojo text-white' : 'bg-dorado text-verde-dark'
+            }`}
+          >
+            {describePromotion(promo)}
           </span>
         )}
 
@@ -45,11 +60,17 @@ export function ProductCard({ product, quantity, onIncrement, onDecrement }: Pro
 
       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
         <div>
-          <p className="precio text-lg font-extrabold leading-none">{formatARS(product.price)}</p>
-          {enOferta && (
+          <p className="precio text-lg font-extrabold leading-none">{formatARS(precioFinal)}</p>
+          {bajaElUnitario ? (
             <p className="precio mt-0.5 text-[11px] text-verde/80 line-through">
-              {formatARS(product.previousPrice!)}
+              {formatARS(product.price)}
             </p>
+          ) : (
+            promo && (
+              <p className="mt-0.5 text-[11px] font-semibold text-dorado-dark">
+                {explainPromotion(promo)}
+              </p>
+            )
           )}
         </div>
 

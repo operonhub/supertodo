@@ -23,7 +23,7 @@ type Item = {
 const ITEMS: Item[] = [
   { href: '/admin', label: 'Resumen', Icon: LayoutIcon },
   { href: '/admin/productos', label: 'Productos', Icon: PackageIcon },
-  { href: '/admin/ofertas', label: 'Ofertas del día', Icon: TagIcon },
+  { href: '/admin/ofertas', label: 'Ofertas', Icon: TagIcon },
   { href: '/admin/pedidos', label: 'Pedidos', Icon: ClipboardIcon },
   { href: '/admin/catering', label: 'Catering', Icon: PartyIcon },
   { href: '/admin/configuracion', label: 'Configuración', Icon: SettingsIcon },

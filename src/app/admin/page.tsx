@@ -15,7 +15,7 @@ import {
   PAYMENT_LABEL,
   summarizeToday,
 } from '@/lib/orders';
-import { isActive, isOnOffer } from '@/lib/products';
+import { hasPromotion, isActive } from '@/lib/products';
 
 export default function ResumenPage() {
   const orders = useOrders();
@@ -27,7 +27,7 @@ export default function ResumenPage() {
   const catálogo = useMemo(
     () => ({
       activos: products.filter(isActive).length,
-      enOferta: products.filter((p) => isActive(p) && isOnOffer(p)).length,
+      enOferta: products.filter((p) => isActive(p) && hasPromotion(p)).length,
       sinStock: products.filter((p) => isActive(p) && !p.available).length,
     }),
     [products],

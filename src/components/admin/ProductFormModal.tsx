@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
 import { CATEGORIES } from '@/data/categories';
-import { normalPrice } from '@/lib/products';
 import { slugify } from '@/lib/text';
 import type { CategorySlug, Product } from '@/types';
 
@@ -13,11 +12,9 @@ interface FormState {
   unit: string;
   category: CategorySlug;
   price: string;
-  previousPrice: string;
   imageUrl: string;
   stock: string;
   active: boolean;
-  onOffer: boolean;
 }
 
 const VACÍO: FormState = {
@@ -25,27 +22,20 @@ const VACÍO: FormState = {
   unit: '',
   category: 'almacen',
   price: '',
-  previousPrice: '',
   imageUrl: '',
   stock: '',
   active: true,
-  onOffer: false,
 };
 
 function toForm(product: Product): FormState {
-  const enOferta = product.previousPrice !== undefined;
   return {
     name: product.name,
     unit: product.unit,
     category: product.category,
-    // Con oferta activa, el campo "precio" es el precio normal y el de oferta va
-    // aparte; así el dueño siempre ve el precio de lista en el mismo lugar.
-    price: String(normalPrice(product)),
-    previousPrice: enOferta ? String(product.price) : '',
+    price: String(product.price),
     imageUrl: product.imageUrl ?? '',
     stock: product.stock === undefined ? '' : String(product.stock),
     active: product.active !== false,
-    onOffer: enOferta,
   };
 }
 
@@ -62,14 +52,6 @@ function validar(form: FormState): Errores {
     errores.price = 'El precio tiene que ser un número mayor a cero.';
   }
 
-  if (form.onOffer) {
-    const oferta = Number(form.previousPrice);
-    if (!form.previousPrice.trim() || !Number.isFinite(oferta) || oferta <= 0) {
-      errores.previousPrice = 'Poné el precio con descuento.';
-    } else if (Number.isFinite(precio) && oferta >= precio) {
-      errores.previousPrice = 'El precio de oferta tiene que ser menor al normal.';
-    }
-  }
 
   if (form.stock.trim()) {
     const stock = Number(form.stock);
@@ -108,8 +90,6 @@ export function ProductFormModal({
     setErrores(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
-    const normal = Number(form.price);
-    const oferta = form.onOffer ? Number(form.previousPrice) : null;
     const stock = form.stock.trim() ? Number(form.stock) : undefined;
 
     onSave({
@@ -117,9 +97,15 @@ export function ProductFormModal({
       name: form.name.trim(),
       unit: form.unit.trim(),
       category: form.category,
-      // En el modelo `price` es el precio vigente: si hay oferta, es el rebajado.
-      price: oferta ?? normal,
-      ...(oferta !== null ? { previousPrice: normal } : {}),
+      // `price` es el precio de lista. Las ofertas se administran sólo desde
+      // Ofertas, este formulario no las toca.
+      price: Number(form.price),
+      /**
+       * ⚠️ No borrar: este formulario arma el producto entero y `upsertProduct`
+       * reemplaza la fila completa. Sin re-adjuntar la promoción acá, editar el
+       * nombre o el precio de un producto le borraría la oferta en silencio.
+       */
+      ...(product?.promotion ? { promotion: product.promotion } : {}),
       ...(form.imageUrl.trim() ? { imageUrl: form.imageUrl.trim() } : {}),
       ...(stock !== undefined ? { stock } : {}),
       active: form.active,
@@ -171,7 +157,7 @@ export function ProductFormModal({
         </div>
 
         <div className="grid gap-x-3 sm:grid-cols-2">
-          <Field label="Precio normal" htmlFor="p-price" error={errores.price}>
+          <Field label="Precio de lista" htmlFor="p-price" error={errores.price}>
             <input
               id="p-price"
               type="number"
@@ -215,7 +201,7 @@ export function ProductFormModal({
           />
         </Field>
 
-        <div className="my-4 space-y-3 rounded-xl bg-white p-4">
+        <div className="my-4 rounded-xl bg-white p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Activo</p>
@@ -224,29 +210,6 @@ export function ProductFormModal({
             <Toggle checked={form.active} onChange={(v) => set('active', v)} label="Producto activo" />
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-verde/10 pt-3">
-            <div>
-              <p className="text-sm font-semibold">Destacar en ofertas</p>
-              <p className="text-[11px] text-verde/90">Muestra el precio tachado y el descuento</p>
-            </div>
-            <Toggle checked={form.onOffer} onChange={(v) => set('onOffer', v)} label="Producto en oferta" />
-          </div>
-
-          {form.onOffer && (
-            <Field label="Precio de oferta" htmlFor="p-offer" error={errores.previousPrice}>
-              <input
-                id="p-offer"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                className={inputClass}
-                value={form.previousPrice}
-                onChange={(e) => set('previousPrice', e.target.value)}
-                aria-invalid={Boolean(errores.previousPrice)}
-                aria-describedby={errores.previousPrice ? 'p-offer-error' : undefined}
-              />
-            </Field>
-          )}
         </div>
 
         <div className="flex gap-2">

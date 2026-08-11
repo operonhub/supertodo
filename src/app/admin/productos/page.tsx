@@ -8,8 +8,8 @@ import { EditIcon, PlusIcon, SearchIcon } from '@/components/icons';
 import { ProductImage } from '@/components/ProductImage';
 import { CATEGORIES, getCategoryName } from '@/data/categories';
 import { useProducts } from '@/hooks/useStores';
-import { formatARS, getDiscountPercent } from '@/lib/currency';
-import { isActive, isOnOffer, normalPrice } from '@/lib/products';
+import { formatARS } from '@/lib/currency';
+import { describePromotion, getUnitPrice, isActive } from '@/lib/products';
 import { upsertProduct } from '@/lib/stores';
 import { normalizeText } from '@/lib/text';
 import type { CategorySlug, Product } from '@/types';
@@ -116,8 +116,8 @@ export default function ProductosPage() {
               </thead>
               <tbody>
                 {visibles.map((product) => {
-                  const enOferta = isOnOffer(product);
-                  const descuento = getDiscountPercent(product.price, product.previousPrice);
+                  const promo = product.promotion;
+                  const final = getUnitPrice(product);
 
                   return (
                     <tr key={product.id} className="border-b border-verde/5 transition-colors last:border-0 hover:bg-crema/60">
@@ -133,14 +133,26 @@ export default function ProductosPage() {
 
                       <td className="px-3 py-3 text-verde/90">{getCategoryName(product.category)}</td>
 
+                      {/* Las ofertas se administran en la pantalla Ofertas: acá
+                          sólo se muestran, para no tener dos lugares donde tocarlas. */}
                       <td className="px-3 py-3 text-right">
-                        <span className="precio font-extrabold">{formatARS(product.price)}</span>
-                        {enOferta && (
+                        <span className="precio font-extrabold">{formatARS(final)}</span>
+                        {promo && (
                           <>
-                            <span className="precio ml-2 text-[11px] text-verde/90 line-through">
-                              {formatARS(normalPrice(product))}
-                            </span>
-                            <Badge className="ml-2 bg-rojo/10 text-rojo">−{descuento}%</Badge>
+                            {final < product.price && (
+                              <span className="precio ml-2 text-[11px] text-verde/90 line-through">
+                                {formatARS(product.price)}
+                              </span>
+                            )}
+                            <Badge
+                              className={`ml-2 ${
+                                promo.type === 'percent'
+                                  ? 'bg-rojo/10 text-rojo'
+                                  : 'bg-dorado/25 text-dorado-dark'
+                              }`}
+                            >
+                              {describePromotion(promo)}
+                            </Badge>
                           </>
                         )}
                       </td>

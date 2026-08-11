@@ -7,8 +7,8 @@ import type { Product } from '@/types';
  * constante se reemplaza por la consulta y el resto de la app no cambia:
  * todo lo que consume productos lo hace a través de `getProducts()`.
  *
- * `previousPrice` sólo se completa cuando el producto está realmente en
- * oferta — el porcentaje se calcula solo.
+ * `promotion` sólo se completa cuando el producto está realmente en oferta.
+ * `price` es SIEMPRE el precio de lista: lo que se cobra se deriva de ambos.
  */
 export const PRODUCTS: Product[] = [
   // ---------- Almacén ----------
@@ -17,8 +17,8 @@ export const PRODUCTS: Product[] = [
     name: 'Aceite de girasol Natura',
     unit: '900 ml',
     category: 'almacen',
-    price: 2200,
-    previousPrice: 2750,
+    price: 2750,
+    promotion: { type: 'percent', percent: 20 },
     available: true,
   },
   {
@@ -26,8 +26,8 @@ export const PRODUCTS: Product[] = [
     name: 'Fideos tirabuzón Matarazzo',
     unit: '500 g',
     category: 'almacen',
-    price: 1650,
-    previousPrice: 1990,
+    price: 1990,
+    promotion: { type: 'percent', percent: 17 },
     available: true,
   },
   {
@@ -35,8 +35,8 @@ export const PRODUCTS: Product[] = [
     name: 'Arroz largo fino Marolio',
     unit: '1 kg',
     category: 'almacen',
-    price: 1450,
-    previousPrice: 1800,
+    price: 1800,
+    promotion: { type: 'percent', percent: 19 },
     available: true,
   },
   {
@@ -44,8 +44,8 @@ export const PRODUCTS: Product[] = [
     name: 'Yerba mate Playadito',
     unit: '1 kg',
     category: 'almacen',
-    price: 4990,
-    previousPrice: 5900,
+    price: 5900,
+    promotion: { type: 'percent', percent: 15 },
     available: true,
   },
   {
@@ -53,8 +53,8 @@ export const PRODUCTS: Product[] = [
     name: 'Galletitas Ópera Arcor',
     unit: '300 g',
     category: 'almacen',
-    price: 1200,
-    previousPrice: 1450,
+    price: 1450,
+    promotion: { type: 'percent', percent: 17 },
     available: true,
   },
   {
@@ -104,8 +104,8 @@ export const PRODUCTS: Product[] = [
     name: 'Coca Cola',
     unit: '2,25 L',
     category: 'bebidas',
-    price: 3200,
-    previousPrice: 3800,
+    price: 3800,
+    promotion: { type: '3x2' },
     available: true,
   },
   {
@@ -113,8 +113,8 @@ export const PRODUCTS: Product[] = [
     name: 'Cerveza Quilmes Clásica',
     unit: '1 L',
     category: 'bebidas',
-    price: 2500,
-    previousPrice: 2900,
+    price: 2900,
+    promotion: { type: '2x1' },
     available: true,
   },
   {
@@ -148,8 +148,8 @@ export const PRODUCTS: Product[] = [
     name: 'Leche entera La Serenísima',
     unit: '1 L',
     category: 'lacteos',
-    price: 1850,
-    previousPrice: 2100,
+    price: 2100,
+    promotion: { type: 'percent', percent: 12 },
     available: true,
   },
   {
@@ -191,8 +191,8 @@ export const PRODUCTS: Product[] = [
     name: 'Hamburguesas Paty',
     unit: 'x4 unidades',
     category: 'fiambreria',
-    price: 3950,
-    previousPrice: 4600,
+    price: 4600,
+    promotion: { type: 'percent', percent: 14 },
     available: true,
   },
   {
@@ -227,8 +227,8 @@ export const PRODUCTS: Product[] = [
     name: 'Jabón en polvo Ala',
     unit: '3 kg',
     category: 'limpieza',
-    price: 6800,
-    previousPrice: 8000,
+    price: 8000,
+    promotion: { type: 'percent', percent: 15 },
     available: true,
   },
   {

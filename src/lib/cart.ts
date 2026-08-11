@@ -1,3 +1,4 @@
+import { getLineSubtotal } from '@/lib/products';
 import type { CartItem, CartSummary, Product } from '@/types';
 
 /**
@@ -14,7 +15,11 @@ export function buildCartSummary(items: CartItem[], products: Product[]): CartSu
   const lines = items.flatMap((item) => {
     const product = byId.get(item.productId);
     if (!product || !product.available || item.quantity <= 0) return [];
-    return [{ product, quantity: item.quantity, subtotal: product.price * item.quantity }];
+    // El subtotal sale de `getLineSubtotal` y no de `price * cantidad`: es el
+    // único lugar donde las promos por cantidad (3x2, 2x1) descuentan de verdad.
+    return [
+      { product, quantity: item.quantity, subtotal: getLineSubtotal(product, item.quantity) },
+    ];
   });
 
   return {
