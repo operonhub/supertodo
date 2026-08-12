@@ -28,6 +28,20 @@ export function useOrders(): Order[] {
   );
 }
 
+/**
+ * Momento de la última carga de pedidos, o `null` si todavía no hubo ninguna.
+ *
+ * Funciona como snapshot porque es un número: `useSyncExternalStore` compara
+ * por identidad, y un objeto nuevo en cada llamada haría render infinito.
+ */
+export function useOrdersUpdatedAt(): number | null {
+  return useSyncExternalStore(
+    orderStore.subscribe,
+    orderStore.getUpdatedAt,
+    orderStore.getServerUpdatedAt,
+  );
+}
+
 export function useSettings(): BusinessConfig {
   return useSyncExternalStore(
     settingsStore.subscribe,

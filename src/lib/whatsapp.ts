@@ -21,6 +21,12 @@ const MODALIDAD: Record<DeliveryMode, string> = {
  * mensaje real, sin inventar datos que todavía no existen.
  */
 export interface OrderMessageInput {
+  /**
+   * Código del pedido. Falta en la vista previa (todavía no se grabó) y está
+   * en el mensaje que se manda de verdad: es lo que le permite al dueño
+   * cruzar el WhatsApp que le llega con la fila del panel para confirmarlo.
+   */
+  id?: string;
   customer: { name: string; address?: string };
   items: OrderItem[];
   total: number;
@@ -56,6 +62,7 @@ export function buildOrderMessage(order: OrderMessageInput): string {
     `Total: ${formatARS(order.total)}`,
     `Pago: ${order.paymentMethod}`,
     entrega,
+    ...(order.id ? ['', `Pedido #${order.id}`] : []),
   ].join('\n');
 }
 

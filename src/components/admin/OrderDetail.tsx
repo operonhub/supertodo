@@ -112,6 +112,24 @@ export function OrderDetail({
         <span className="ml-auto text-[11px] text-verde/90">{formatDateTime(order.createdAt)}</span>
       </div>
 
+      {order.status === 'sin_confirmar' && (
+        <section className="mb-4 rounded-2xl bg-amber-50 p-4">
+          <h3 className="mb-1 text-sm font-extrabold text-amber-900">Falta confirmar</h3>
+          <p className="mb-3 text-[13px] leading-relaxed text-amber-900">
+            El cliente armó este pedido en la tienda, pero mandar el WhatsApp lo tiene que hacer
+            él. Confirmalo cuando te llegue el mensaje con el código <strong>#{order.id}</strong>.
+            Hasta entonces no suma a los números del día.
+          </p>
+          <button
+            type="button"
+            onClick={() => onStatusChange(order.id, 'nuevo')}
+            className="w-full rounded-xl bg-verde px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-verde-dark"
+          >
+            Confirmar pedido
+          </button>
+        </section>
+      )}
+
       <section className="mb-4 rounded-2xl bg-white p-4">
         <h3 className="mb-2 text-sm font-extrabold">Cliente</h3>
         <p className="text-sm font-semibold">{order.customer.name}</p>

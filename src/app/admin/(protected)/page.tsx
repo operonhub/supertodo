@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Badge, StatCard } from '@/components/admin/ui';
 import { AlertIcon } from '@/components/icons';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useHydrated, useOrders, useProducts } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
 import { relativeTime } from '@/lib/dates';
@@ -16,11 +17,16 @@ import {
   summarizeToday,
 } from '@/lib/orders';
 import { hasPromotion, isActive } from '@/lib/products';
+import { refreshOrders } from '@/lib/stores';
 
 export default function ResumenPage() {
   const orders = useOrders();
   const products = useProducts();
   const hydrated = useHydrated();
+
+  // Es la pantalla de entrada del panel: si muestra los números de hace dos
+  // horas, el resto deja de ser creíble.
+  useRefreshOnFocus(refreshOrders);
 
   const resumen = useMemo(() => summarizeToday(orders), [orders]);
 
@@ -41,6 +47,12 @@ export default function ResumenPage() {
 
   // Sólo se muestran las alertas que existen: una lista de ceros es ruido.
   const alertas = [
+    resumen.sinConfirmar > 0 && {
+      tono: 'aviso' as const,
+      texto: `${resumen.sinConfirmar} ${
+        resumen.sinConfirmar === 1 ? 'pedido sin confirmar' : 'pedidos sin confirmar'
+      } — confirmalos cuando te llegue el WhatsApp`,
+    },
     resumen.listos > 0 && {
       tono: 'ok' as const,
       texto: `${resumen.listos} ${resumen.listos === 1 ? 'pedido listo' : 'pedidos listos'} para entregar`,
@@ -53,7 +65,15 @@ export default function ResumenPage() {
       tono: 'alerta' as const,
       texto: `${catálogo.sinStock} ${catálogo.sinStock === 1 ? 'producto' : 'productos'} sin stock en la tienda`,
     },
-  ].filter(Boolean) as { tono: 'ok' | 'alerta'; texto: string }[];
+  ].filter(Boolean) as { tono: 'ok' | 'alerta' | 'aviso'; texto: string }[];
+
+  // El rojo queda para lo que cuesta plata (sin pagar, sin stock). Un pedido
+  // sin confirmar es una tarea pendiente, no un problema.
+  const TONO: Record<'ok' | 'alerta' | 'aviso', string> = {
+    ok: 'bg-verde-soft text-verde',
+    alerta: 'bg-rojo/10 text-rojo',
+    aviso: 'bg-amber-50 text-amber-900',
+  };
 
   return (
     <>
@@ -64,9 +84,7 @@ export default function ResumenPage() {
           {alertas.map((a) => (
             <div
               key={a.texto}
-              className={`flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold ${
-                a.tono === 'alerta' ? 'bg-rojo/10 text-rojo' : 'bg-verde-soft text-verde'
-              }`}
+              className={`flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold ${TONO[a.tono]}`}
             >
               <AlertIcon className="h-4 w-4 shrink-0" />
               {a.texto}

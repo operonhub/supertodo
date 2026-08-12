@@ -187,8 +187,16 @@ export interface TeamMember {
  * Estado operativo del pedido. Va **separado del pago** a propósito: un pedido
  * puede estar entregado y sin pagar (fiado, que en un almacén de barrio pasa
  * todo el tiempo), o pagado por transferencia y todavía sin preparar.
+ *
+ * `sin_confirmar` es el estado en que nace todo pedido hecho desde la tienda.
+ * El pedido se graba antes de abrir WhatsApp, pero mandar el mensaje lo tiene
+ * que hacer el cliente a mano — y no hay forma de enterarse si lo hizo. Hasta
+ * que el WhatsApp llegue al local, el pedido existe pero no es una venta: no
+ * suma a los números del día ni se prepara. Lo confirma el dueño cuando ve
+ * llegar el mensaje.
  */
 export type OrderStatus =
+  | 'sin_confirmar'
   | 'nuevo'
   | 'preparando'
   | 'listo'

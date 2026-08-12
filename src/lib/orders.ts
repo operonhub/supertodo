@@ -4,6 +4,7 @@ import type { DeliveryMode, Order, OrderStatus, PaymentStatus } from '@/types';
 
 /** Etiquetas visibles. Se definen una vez para que no se escriban distinto en cada pantalla. */
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  sin_confirmar: 'Sin confirmar',
   nuevo: 'Nuevo',
   preparando: 'Preparando',
   listo: 'Listo para retirar',
@@ -24,6 +25,7 @@ export const DELIVERY_LABEL: Record<DeliveryMode, string> = {
 
 /** Orden en que se ofrecen los estados en los selectores. */
 export const ORDER_STATUSES: OrderStatus[] = [
+  'sin_confirmar',
   'nuevo',
   'preparando',
   'listo',
@@ -39,6 +41,11 @@ export const ORDER_STATUSES: OrderStatus[] = [
  * grita, y lo que el dueño necesita ver de un vistazo es qué le falta cobrar.
  */
 export const ORDER_STATUS_STYLE: Record<OrderStatus, string> = {
+  // Fantasma a propósito: sin relleno y sólo con contorno, para que se lea
+  // "todavía no es un pedido de verdad" sin robarle atención a los que sí
+  // hay que preparar. Va con `ring` y no con `border` porque el selector de
+  // estado de la lista de pedidos fuerza `border-0`.
+  sin_confirmar: 'bg-white text-verde/80 ring-1 ring-verde/25',
   nuevo: 'bg-sky-100 text-sky-800',
   preparando: 'bg-amber-100 text-amber-800',
   listo: 'bg-verde-soft text-verde',
@@ -120,13 +127,22 @@ export function filterOrders(orders: Order[], filters: OrderFilters): Order[] {
   });
 }
 
+/**
+ * Un pedido sin confirmar no es una venta: se grabó cuando el cliente apretó
+ * "enviar", pero nadie sabe si después mandó el WhatsApp. Contarlo como venta
+ * inflaría la caja del día con carritos abandonados.
+ */
+export const estáConfirmado = (order: Order) => order.status !== 'sin_confirmar';
+
 /** Números del día para el Resumen. */
 export function summarizeToday(orders: Order[]) {
   const deHoy = orders.filter((o) => isToday(o.createdAt));
-  const vigentes = deHoy.filter((o) => o.status !== 'cancelado');
+  const confirmados = deHoy.filter(estáConfirmado);
+  const vigentes = confirmados.filter((o) => o.status !== 'cancelado');
 
   return {
-    pedidosHoy: deHoy.length,
+    pedidosHoy: confirmados.length,
+    sinConfirmar: deHoy.length - confirmados.length,
     // "Pendientes de preparación" es lo que todavía no salió del mostrador.
     pendientes: vigentes.filter((o) => o.status === 'nuevo' || o.status === 'preparando').length,
     listos: vigentes.filter((o) => o.status === 'listo').length,

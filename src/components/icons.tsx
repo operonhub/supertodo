@@ -217,6 +217,15 @@ export function CameraIcon({ className }: IconProps) {
   );
 }
 
+export function RefreshIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...strokeProps}>
+      <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.5-6M3 12a9 9 0 0 1 9-9 9 9 0 0 1 8.5 6" />
+      <path d="M21 3v6h-6M3 21v-6h6" />
+    </svg>
+  );
+}
+
 export function ImageIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...strokeProps}>

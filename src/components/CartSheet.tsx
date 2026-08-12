@@ -248,6 +248,13 @@ export function CartSheet({
             <WhatsAppIcon className="h-5 w-5" />
             {enviando ? 'Enviando pedido…' : 'Enviar pedido por WhatsApp'}
           </button>
+
+          {/* El paso que más se pierde: se abre WhatsApp con todo escrito y
+              mucha gente cree que con eso ya está. Sin apretar enviar, al
+              local no le llega nada. */}
+          <p className="mt-2.5 text-center text-[11px] font-semibold text-verde/90">
+            Se abre WhatsApp con el pedido escrito. Acordate de apretar enviar.
+          </p>
         </div>
       </div>
     </div>

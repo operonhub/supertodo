@@ -124,23 +124,39 @@ const SIN_PEDIDOS: Order[] = [];
 
 let orderSnapshot: Order[] = SIN_PEDIDOS;
 let ordersInicializado = false;
+let ordersActualizadoEn: number | null = null;
+let consultaEnCurso: Promise<void> | null = null;
 const orderListeners = new Set<Listener>();
 
 function emitOrders() {
   for (const listener of orderListeners) listener();
 }
 
-async function fetchOrders() {
+/** Tira si falla: quien la llama decide si el error se muestra o se calla. */
+async function fetchOrders(): Promise<void> {
   const supabase = createClient();
   const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('No se pudieron cargar los pedidos:', error.message);
-    return;
-  }
+  if (error) throw new Error(`No se pudieron cargar los pedidos: ${error.message}`);
 
   orderSnapshot = data.map(rowToOrder);
+  ordersActualizadoEn = Date.now();
   emitOrders();
+}
+
+/**
+ * Vuelve a traer los pedidos desde la base.
+ *
+ * Si ya hay una consulta en curso devuelve esa misma en vez de largar otra:
+ * el botón de actualizar y el refresco al volver a la pestaña se pueden
+ * disparar casi juntos, y dos respuestas en desorden dejarían la lista con
+ * los datos más viejos.
+ */
+export function refreshOrders(): Promise<void> {
+  consultaEnCurso ??= fetchOrders().finally(() => {
+    consultaEnCurso = null;
+  });
+  return consultaEnCurso;
 }
 
 export const orderStore = {
@@ -149,7 +165,9 @@ export const orderStore = {
 
     if (!ordersInicializado) {
       ordersInicializado = true;
-      fetchOrders();
+      // La carga inicial no tiene dónde mostrar el error todavía; el botón de
+      // actualizar sí, y es el camino por el que se reintenta.
+      refreshOrders().catch((err: Error) => console.error(err.message));
     }
 
     return () => {
@@ -158,6 +176,9 @@ export const orderStore = {
   },
   getSnapshot: () => orderSnapshot,
   getServerSnapshot: () => SIN_PEDIDOS,
+  /** Momento de la última carga con éxito. Es un número: sirve como snapshot. */
+  getUpdatedAt: () => ordersActualizadoEn,
+  getServerUpdatedAt: () => null,
 };
 
 /**

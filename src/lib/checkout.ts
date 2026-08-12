@@ -56,9 +56,12 @@ export async function createOrder(summary: CartSummary, info: CheckoutInfo): Pro
     total: summary.total,
     delivery: info.delivery,
     paymentMethod: info.paymentMethod,
-    status: 'nuevo',
+    // Nace sin confirmar: recién se graba, todavía falta que el cliente
+    // apriete enviar en WhatsApp y no hay forma de saber si lo hace. Lo
+    // confirma el dueño desde el panel cuando ve llegar el mensaje.
+    status: 'sin_confirmar',
     payment: 'falta_pagar',
-    history: [{ status: 'nuevo', at: ahora }],
+    history: [{ status: 'sin_confirmar', at: ahora }],
   };
 
   const supabase = createClient();

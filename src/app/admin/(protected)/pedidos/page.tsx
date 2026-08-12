@@ -4,10 +4,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { OrderDetail } from '@/components/admin/OrderDetail';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Badge, Toast, inputClass, selectClass } from '@/components/admin/ui';
-import { SearchIcon } from '@/components/icons';
-import { useHydrated, useOrders } from '@/hooks/useStores';
+import { RefreshIcon, SearchIcon } from '@/components/icons';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useHydrated, useOrders, useOrdersUpdatedAt } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
-import { formatDateTime, relativeTime } from '@/lib/dates';
+import { formatDateTime, formatTime, relativeTime } from '@/lib/dates';
 import {
   DEFAULT_FILTERS,
   DELIVERY_LABEL,
@@ -21,7 +22,7 @@ import {
   type OrderFilters,
   type OrderSort,
 } from '@/lib/orders';
-import { setOrderPayment, setOrderStatus } from '@/lib/stores';
+import { refreshOrders, setOrderPayment, setOrderStatus } from '@/lib/stores';
 import type { Order } from '@/types';
 
 const RANGOS: { value: OrderFilters['range']; label: string }[] = [
@@ -37,6 +38,23 @@ export default function PedidosPage() {
   const [filters, setFilters] = useState<OrderFilters>(DEFAULT_FILTERS);
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [actualizando, setActualizando] = useState(false);
+  const actualizadoEn = useOrdersUpdatedAt();
+
+  async function actualizar() {
+    setActualizando(true);
+    try {
+      await refreshOrders();
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : 'No se pudieron actualizar los pedidos.');
+    } finally {
+      setActualizando(false);
+    }
+  }
+
+  // Al volver de WhatsApp al panel, la lista se pone al día sola: es
+  // exactamente el momento en que el dueño viene a buscar el pedido nuevo.
+  useRefreshOnFocus(refreshOrders);
 
   /**
    * `setOrderStatus`/`setOrderPayment` van a Supabase y pueden fallar: si tira,
@@ -85,6 +103,27 @@ export default function PedidosPage() {
           hydrated
             ? `${visibles.length} ${visibles.length === 1 ? 'pedido' : 'pedidos'} · ${formatARS(totalVisible)}`
             : undefined
+        }
+        actions={
+          <div className="flex items-center gap-3">
+            {/* Hora exacta y no "hace 5 minutos": un relativo se congela hasta
+                el próximo render y terminaría mintiendo justo cuando importa
+                saber qué tan vieja es la lista. */}
+            {actualizadoEn && (
+              <span className="text-[11px] text-verde/90">
+                Actualizado {formatTime(new Date(actualizadoEn))}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={actualizar}
+              disabled={actualizando}
+              className="flex items-center gap-2 rounded-xl border border-verde/20 bg-white px-4 py-2.5 text-sm font-bold text-verde shadow-card transition-colors hover:bg-verde/5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshIcon className={`h-4 w-4 ${actualizando ? 'animate-spin' : ''}`} />
+              {actualizando ? 'Actualizando…' : 'Actualizar'}
+            </button>
+          </div>
         }
       />
 
@@ -255,6 +294,15 @@ export default function PedidosPage() {
                       </td>
 
                       <td className="px-5 py-3 text-right">
+                        {order.status === 'sin_confirmar' && (
+                          <button
+                            type="button"
+                            onClick={() => cambiarEstado(order.id, 'nuevo')}
+                            className="mr-1 rounded-lg bg-verde px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-verde-dark"
+                          >
+                            Confirmar
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setDetalleId(order.id)}
@@ -291,6 +339,19 @@ export default function PedidosPage() {
                   <Badge className={PAYMENT_STYLE[order.payment]}>{PAYMENT_LABEL[order.payment]}</Badge>
                   <Badge className="bg-verde/10 text-verde">{DELIVERY_LABEL[order.delivery]}</Badge>
                 </div>
+
+                {/* En un pedido sin confirmar la acción es una sola, así que va
+                    a lo ancho y arriba de todo: cambiarle el estado o marcarlo
+                    pagado no tiene sentido hasta saber que el pedido existe. */}
+                {order.status === 'sin_confirmar' && (
+                  <button
+                    type="button"
+                    onClick={() => cambiarEstado(order.id, 'nuevo')}
+                    className="mb-2 w-full rounded-xl bg-verde px-3 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-verde-dark"
+                  >
+                    Confirmar pedido
+                  </button>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                   <select
