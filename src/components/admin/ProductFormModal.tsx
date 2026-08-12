@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { BarcodeScanner } from '@/components/admin/BarcodeScanner';
+import { PhotoField } from '@/components/admin/PhotoField';
 import { SuggestedProductsPicker } from '@/components/admin/SuggestedProductsPicker';
 import { Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
 import { CameraIcon } from '@/components/icons';
@@ -268,15 +269,7 @@ export function ProductFormModal({
           </Field>
         </div>
 
-        <Field label="Foto (URL)" htmlFor="p-img" hint="Opcional. Si está vacío se usa el color de la categoría">
-          <input
-            id="p-img"
-            className={inputClass}
-            value={form.imageUrl}
-            onChange={(e) => set('imageUrl', e.target.value)}
-            placeholder="https://…"
-          />
-        </Field>
+        <PhotoField value={form.imageUrl} onChange={(url) => set('imageUrl', url)} />
 
         <div className="mb-3">
           <p className="mb-1 text-xs font-semibold text-verde/90">Variantes sugeridas</p>
