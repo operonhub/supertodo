@@ -62,6 +62,21 @@ export const BUSINESS: BusinessConfig = {
     { id: 'transferencia', label: 'Transferencia / MODO', enabled: true },
     { id: 'tarjeta', label: 'Débito o crédito', enabled: false },
   ],
+
+  /**
+   * Punto de partida del catálogo. Desde acá se editan en el panel
+   * (Categorías): se agregan, renombran, reordenan y se les cuelgan
+   * subcategorías. Los tintes son los pastel elegidos a mano que hacen que la
+   * grilla se lea ordenada mientras los productos no tienen foto.
+   */
+  categories: [
+    { slug: 'almacen', name: 'Almacén', tint: ['#FDF0D5', '#F7E0AE'], subcategories: [] },
+    { slug: 'bebidas', name: 'Bebidas', tint: ['#FBE3DC', '#F5C8BC'], subcategories: [] },
+    { slug: 'lacteos', name: 'Lácteos', tint: ['#E3F0FA', '#C6E0F2'], subcategories: [] },
+    { slug: 'fiambreria', name: 'Fiambrería', tint: ['#FBE6EA', '#F3C7D0'], subcategories: [] },
+    { slug: 'limpieza', name: 'Limpieza', tint: ['#E0F2F1', '#BEE3E1'], subcategories: [] },
+    { slug: 'catering', name: 'Catering', tint: ['#EDE7F6', '#D6C9EC'], subcategories: [] },
+  ],
 };
 
 /** Dirección en una línea, que es como se usa casi siempre. */

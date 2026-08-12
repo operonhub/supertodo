@@ -6,19 +6,39 @@
  * ningún componente sabe de dónde salen los productos.
  */
 
-/** Identificador estable de categoría. Es el que viaja en la URL o en la DB. */
-export type CategorySlug =
-  | 'almacen'
-  | 'bebidas'
-  | 'lacteos'
-  | 'fiambreria'
-  | 'limpieza'
-  | 'catering';
+/**
+ * Identificador estable de categoría. Es el que guardan los productos.
+ *
+ * Era una unión cerrada de 6 valores hasta que las categorías se volvieron
+ * editables desde el panel; ahora es `string` y el compilador ya no puede
+ * validarlo. Quien valida es el `<select>` del formulario de producto, que se
+ * arma con las categorías vigentes. El alias se mantiene porque
+ * `category: CategorySlug` sigue diciendo más que `category: string`.
+ */
+export type CategorySlug = string;
+
+export interface Subcategory {
+  /** Id estable. No cambia al renombrar. */
+  slug: string;
+  /** Nombre visible, con acentos. */
+  name: string;
+}
 
 export interface Category {
+  /**
+   * Id estable, separado del nombre a propósito: los productos guardan esto,
+   * así que renombrar "Almacén" a "Despensa" no despega ni un producto.
+   */
   slug: CategorySlug;
   /** Nombre visible, con acentos. */
   name: string;
+  /**
+   * Degradé del placeholder cuando el producto no tiene foto. Se elige de una
+   * paleta de presets en el panel: con color libre, la primera categoría nueva
+   * desentonaría con las que ya están.
+   */
+  tint: [string, string];
+  subcategories: Subcategory[];
 }
 
 /**
@@ -42,6 +62,11 @@ export interface Product {
   /** Presentación: "900 ml", "1 kg", "x4". Se muestra debajo del nombre. */
   unit: string;
   category: CategorySlug;
+  /**
+   * Subcategoría dentro de `category`. Opcional: no todo comercio arma el
+   * segundo nivel, y forzarlo trabaría la carga de productos.
+   */
+  subcategory?: string;
   /**
    * Precio de lista, en pesos. **Nunca lo pisa una oferta.**
    *
@@ -160,6 +185,12 @@ export interface BusinessConfig {
   team: TeamMember[];
   /** Formas de pago que acepta el local. El cliente elige una al hacer el pedido. */
   paymentMethods: PaymentMethod[];
+  /**
+   * Categorías del catálogo, en el orden en que se muestran. Viven acá y no en
+   * una tabla propia porque son pocas, las edita una sola persona y se guardan
+   * juntas — igual que `team` y `paymentMethods`.
+   */
+  categories: Category[];
 }
 
 export interface PaymentMethod {

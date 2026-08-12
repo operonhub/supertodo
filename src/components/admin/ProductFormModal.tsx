@@ -6,7 +6,8 @@ import { PhotoField } from '@/components/admin/PhotoField';
 import { SuggestedProductsPicker } from '@/components/admin/SuggestedProductsPicker';
 import { DeleteButton, Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
 import { CameraIcon } from '@/components/icons';
-import { CATEGORIES } from '@/data/categories';
+import { findCategory } from '@/data/categories';
+import { useSettings } from '@/hooks/useStores';
 import { lookupBarcode } from '@/lib/barcode';
 import { slugify } from '@/lib/text';
 import type { CategorySlug, Product } from '@/types';
@@ -16,6 +17,7 @@ interface FormState {
   name: string;
   unit: string;
   category: CategorySlug;
+  subcategory: string;
   price: string;
   imageUrl: string;
   stock: string;
@@ -28,7 +30,8 @@ interface FormState {
 const VACÍO: FormState = {
   name: '',
   unit: '',
-  category: 'almacen',
+  category: '',
+  subcategory: '',
   price: '',
   imageUrl: '',
   stock: '',
@@ -42,6 +45,7 @@ function toForm(product: Product): FormState {
     name: product.name,
     unit: product.unit,
     category: product.category,
+    subcategory: product.subcategory ?? '',
     price: String(product.price),
     imageUrl: product.imageUrl ?? '',
     stock: product.stock === undefined ? '' : String(product.stock),
@@ -58,6 +62,7 @@ function validar(form: FormState): Errores {
 
   if (!form.name.trim()) errores.name = 'Poné un nombre.';
   if (!form.unit.trim()) errores.unit = 'Indicá la presentación, por ejemplo "1 kg".';
+  if (!form.category) errores.category = 'Elegí una categoría.';
 
   const precio = Number(form.price);
   if (!form.price.trim() || !Number.isFinite(precio) || precio <= 0) {
@@ -100,7 +105,14 @@ export function ProductFormModal({
   /** Sólo al editar: en un alta todavía no hay nada que borrar. */
   onDelete?: () => Promise<void>;
 }) {
-  const [form, setForm] = useState<FormState>(() => (product ? toForm(product) : VACÍO));
+  const settings = useSettings();
+
+  // En un alta arranca en la primera categoría: el `<select>` mostraría esa
+  // igual, y dejar el estado en `''` guardaría un producto sin categoría
+  // aunque en pantalla se viera una elegida.
+  const [form, setForm] = useState<FormState>(() =>
+    product ? toForm(product) : { ...VACÍO, category: settings.categories[0]?.slug ?? '' },
+  );
   const [errores, setErrores] = useState<Errores>({});
   const [guardando, setGuardando] = useState(false);
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
@@ -109,6 +121,8 @@ export function ProductFormModal({
 
   const set = <K extends keyof FormState>(campo: K, valor: FormState[K]) =>
     setForm((f) => ({ ...f, [campo]: valor }));
+
+  const subcategorias = findCategory(settings.categories, form.category)?.subcategories ?? [];
 
   async function onCodigoDetectado(codigo: string) {
     setEscaneando(false);
@@ -159,6 +173,7 @@ export function ProductFormModal({
           ? { suggestedProductIds: form.suggestedProductIds }
           : {}),
         ...(form.barcode.trim() ? { barcode: form.barcode.trim() } : {}),
+        ...(form.subcategory ? { subcategory: form.subcategory } : {}),
         active: form.active,
         // Sin control de stock el producto se asume disponible.
         available: stock === undefined ? true : stock > 0,
@@ -221,14 +236,18 @@ export function ProductFormModal({
             />
           </Field>
 
-          <Field label="Categoría" htmlFor="p-cat">
+          <Field label="Categoría" htmlFor="p-cat" error={errores.category}>
             <select
               id="p-cat"
               className={selectClass}
               value={form.category}
-              onChange={(e) => set('category', e.target.value as CategorySlug)}
+              onChange={(e) =>
+                // Se limpia la subcategoría: la que estaba elegida pertenece a
+                // la categoría anterior y no existe en la nueva.
+                setForm((f) => ({ ...f, category: e.target.value, subcategory: '' }))
+              }
             >
-              {CATEGORIES.map((c) => (
+              {settings.categories.map((c) => (
                 <option key={c.slug} value={c.slug}>
                   {c.name}
                 </option>
@@ -236,6 +255,28 @@ export function ProductFormModal({
             </select>
           </Field>
         </div>
+
+        {subcategorias.length > 0 && (
+          <Field
+            label="Subcategoría"
+            htmlFor="p-subcat"
+            hint="Opcional. Se administran desde Categorías"
+          >
+            <select
+              id="p-subcat"
+              className={selectClass}
+              value={form.subcategory}
+              onChange={(e) => set('subcategory', e.target.value)}
+            >
+              <option value="">Sin subcategoría</option>
+              {subcategorias.map((s) => (
+                <option key={s.slug} value={s.slug}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
         <div className="grid gap-x-3 sm:grid-cols-2">
           <Field label="Precio de lista" htmlFor="p-price" error={errores.price}>

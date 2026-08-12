@@ -4,6 +4,7 @@ import { PlusIcon } from '@/components/icons';
 import { ProductImage } from '@/components/ProductImage';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { getCategoryName } from '@/data/categories';
+import { useSettings } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
 import { describePromotion, explainPromotion, getUnitPrice } from '@/lib/products';
 import type { Product } from '@/types';
@@ -24,6 +25,7 @@ export function ProductCard({
   onDecrement,
   suggestions,
 }: ProductCardProps) {
+  const settings = useSettings();
   const promo = product.promotion;
   const precioFinal = getUnitPrice(product);
 
@@ -35,9 +37,9 @@ export function ProductCard({
   const bajaElUnitario = precioFinal < product.price;
 
   return (
-    <article className="flex h-full flex-col rounded-2xl bg-white p-2.5 shadow-card transition-shadow hover:shadow-lg">
-      <div className="relative mb-2.5">
-        <ProductImage product={product} className="h-24 rounded-xl sm:h-32" />
+    <article className="flex h-full flex-col rounded-2xl bg-white p-2.5 shadow-card transition-shadow hover:shadow-lg lg:p-3">
+      <div className="relative mb-2.5 lg:mb-3">
+        <ProductImage product={product} className="h-24 rounded-xl sm:h-32 lg:h-44" />
 
         {promo && (
           <span
@@ -61,9 +63,9 @@ export function ProductCard({
         )}
       </div>
 
-      <p className="text-xs font-semibold leading-tight">{product.name}</p>
-      <p className="mt-0.5 text-[11px] text-verde/80">
-        {product.unit} · {getCategoryName(product.category)}
+      <p className="text-xs font-semibold leading-tight lg:text-sm">{product.name}</p>
+      <p className="mt-0.5 text-[11px] text-verde/80 lg:text-xs">
+        {product.unit} · {getCategoryName(settings.categories, product.category)}
       </p>
 
       {/* Variantes que cargó el dueño: texto, no botón. Le avisan al cliente que
@@ -77,7 +79,9 @@ export function ProductCard({
 
       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
         <div>
-          <p className="precio text-lg font-extrabold leading-none">{formatARS(precioFinal)}</p>
+          <p className="precio text-lg font-extrabold leading-none lg:text-xl">
+            {formatARS(precioFinal)}
+          </p>
           {bajaElUnitario ? (
             <p className="precio mt-0.5 text-[11px] text-verde/80 line-through">
               {formatARS(product.price)}
@@ -98,9 +102,9 @@ export function ProductCard({
             type="button"
             onClick={onIncrement}
             aria-label={`Agregar ${product.name} al pedido`}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-verde text-white shadow-md transition-colors hover:bg-verde-dark"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-verde text-white shadow-md transition-colors hover:bg-verde-dark lg:h-10 lg:w-10"
           >
-            <PlusIcon className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4 lg:h-5 lg:w-5" />
           </button>
         ) : (
           <QuantityStepper

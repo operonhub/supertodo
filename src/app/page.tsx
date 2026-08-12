@@ -4,13 +4,14 @@ import { useCallback, useMemo, useState } from 'react';
 import { CartBar } from '@/components/CartBar';
 import { CartSheet } from '@/components/CartSheet';
 import { CategoryChips } from '@/components/CategoryChips';
+import { CategorySidebar } from '@/components/CategorySidebar';
 import { OfferBanner } from '@/components/OfferBanner';
 import { ProductGrid } from '@/components/ProductGrid';
 import { StoreHeader } from '@/components/StoreHeader';
 import { StoreInfo } from '@/components/StoreInfo';
 import { getCategoryName } from '@/data/categories';
 import { useCart } from '@/hooks/useCart';
-import { useProducts } from '@/hooks/useStores';
+import { useProducts, useSettings } from '@/hooks/useStores';
 import { isActive } from '@/lib/products';
 import { normalizeText } from '@/lib/text';
 import type { CategorySlug } from '@/types';
@@ -20,12 +21,14 @@ export default function CatalogoPage() {
   // edita en el panel se ve acá. El valor del servidor sigue siendo el catálogo
   // estático, con lo que el HTML prerenderizado no cambia.
   const todos = useProducts();
+  const settings = useSettings();
 
   // Un producto inactivo no existe para el cliente: ni se muestra ni se busca.
   const products = useMemo(() => todos.filter(isActive), [todos]);
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategorySlug | null>(null);
+  const [subcategory, setSubcategory] = useState<string | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
   const cart = useCart(products);
@@ -50,20 +53,30 @@ export default function CatalogoPage() {
 
     return products.filter((p) => {
       if (category && p.category !== category) return false;
+      if (subcategory && p.subcategory !== subcategory) return false;
       if (!q) return true;
 
       // Se busca por nombre, presentación y categoría: la gente tipea
       // "fideos", "1kg" o "limpieza" indistintamente.
-      const heno = normalizeText(`${p.name} ${p.unit} ${getCategoryName(p.category)}`);
+      const heno = normalizeText(
+        `${p.name} ${p.unit} ${getCategoryName(settings.categories, p.category)}`,
+      );
       return heno.includes(q);
     });
-  }, [products, query, category]);
+  }, [products, query, category, subcategory, settings.categories]);
 
   // Estables por referencia: los consume un componente con efectos que
   // dependen de ellos, y una función nueva por render los reinstalaría.
   const limpiarFiltros = useCallback(() => {
     setQuery('');
     setCategory(null);
+    setSubcategory(null);
+  }, []);
+
+  /** Cambiar de categoría siempre limpia la subcategoría: la de antes no existe acá. */
+  const elegirCategoria = useCallback((slug: CategorySlug | null) => {
+    setCategory(slug);
+    setSubcategory(null);
   }, []);
 
   const abrirCarrito = useCallback(() => setCartOpen(true), []);
@@ -73,27 +86,53 @@ export default function CatalogoPage() {
     <div className="min-h-dvh pb-28">
       <StoreHeader query={query} onQueryChange={setQuery} />
 
-      <main className="mx-auto max-w-3xl">
-        <CategoryChips selected={category} onSelect={setCategory} counts={counts} />
-        <OfferBanner />
-
-        {/* Resultado de la búsqueda, anunciado a lectores de pantalla. */}
-        <p className="sr-only" role="status">
-          {visibles.length} productos encontrados
-        </p>
-
-        <ProductGrid
-          products={visibles}
-          quantityOf={cart.quantityOf}
-          onIncrement={cart.increment}
-          onDecrement={cart.decrement}
-          query={query}
-          onClearFilters={limpiarFiltros}
-          catalogById={catalogById}
+      <div className="mx-auto max-w-7xl">
+        <CategoryChips
+          categories={settings.categories}
+          selected={category}
+          onSelect={elegirCategoria}
+          selectedSubcategory={subcategory}
+          onSelectSubcategory={setSubcategory}
+          counts={counts}
         />
 
-        <StoreInfo />
-      </main>
+        {/* Arriba de las dos columnas: es un aviso de toda la tienda, no algo
+            de la grilla, y al costado de la barra lateral se leería como si
+            aplicara sólo a la categoría abierta. */}
+        <OfferBanner />
+
+        <div className="flex">
+          <CategorySidebar
+            categories={settings.categories}
+            selected={category}
+            onSelect={elegirCategoria}
+            selectedSubcategory={subcategory}
+            onSelectSubcategory={setSubcategory}
+            counts={counts}
+            total={products.length}
+          />
+
+          <main className="min-w-0 flex-1">
+            {/* Resultado de la búsqueda, anunciado a lectores de pantalla. */}
+            <p className="sr-only" role="status">
+              {visibles.length} productos encontrados
+            </p>
+
+            <ProductGrid
+              products={visibles}
+              quantityOf={cart.quantityOf}
+              onIncrement={cart.increment}
+              onDecrement={cart.decrement}
+              query={query}
+              onClearFilters={limpiarFiltros}
+              catalogById={catalogById}
+            />
+          </main>
+        </div>
+      </div>
+
+      {/* Fuera del contenedor a propósito: su fondo va de borde a borde. */}
+      <StoreInfo />
 
       <CartBar summary={cart.summary} onOpen={abrirCarrito} />
 

@@ -53,8 +53,12 @@ export function ProductGrid({
     );
   }
 
+  // En `lg` aparece la barra lateral y el área de productos se angosta ~220px,
+  // así que ahí conviene quedarse en 3 columnas (cards de ~250px) y recién
+  // pasar a 4 en `xl`. Las media queries miran el viewport y no el contenedor,
+  // por eso el salto va corrido un breakpoint respecto de lo que se ve.
   return (
-    <ul className="grid grid-cols-2 gap-3 px-4 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-3 px-4 sm:grid-cols-3 lg:gap-4 xl:grid-cols-4">
       {products.map((product) => (
         <li key={product.id}>
           <ProductCard

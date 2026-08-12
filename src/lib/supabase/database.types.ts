@@ -97,6 +97,7 @@ export type Database = {
           price: number
           promotion: Json | null
           stock: number | null
+          subcategory: string | null
           suggested_product_ids: string[] | null
           unit: string
           updated_at: string
@@ -112,6 +113,7 @@ export type Database = {
           price: number
           promotion?: Json | null
           stock?: number | null
+          subcategory?: string | null
           suggested_product_ids?: string[] | null
           unit: string
           updated_at?: string
@@ -127,6 +129,7 @@ export type Database = {
           price?: number
           promotion?: Json | null
           stock?: number | null
+          subcategory?: string | null
           suggested_product_ids?: string[] | null
           unit?: string
           updated_at?: string

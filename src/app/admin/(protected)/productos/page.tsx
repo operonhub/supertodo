@@ -6,8 +6,8 @@ import { ProductFormModal } from '@/components/admin/ProductFormModal';
 import { Badge, Toast, inputClass, selectClass } from '@/components/admin/ui';
 import { EditIcon, PlusIcon, SearchIcon } from '@/components/icons';
 import { ProductImage } from '@/components/ProductImage';
-import { CATEGORIES, getCategoryName } from '@/data/categories';
-import { useProducts } from '@/hooks/useStores';
+import { getCategoryName } from '@/data/categories';
+import { useProducts, useSettings } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
 import { deleteProductPhoto, esFotoPropia } from '@/lib/photos';
 import { describePromotion, getUnitPrice, isActive } from '@/lib/products';
@@ -24,6 +24,7 @@ function EstadoBadge({ product }: { product: Product }) {
 
 export default function ProductosPage() {
   const products = useProducts();
+  const settings = useSettings();
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategorySlug | 'todas'>('todas');
@@ -113,7 +114,7 @@ export default function ProductosPage() {
           className={`${selectClass} w-auto`}
         >
           <option value="todas">Todas las categorías</option>
-          {CATEGORIES.map((c) => (
+          {settings.categories.map((c) => (
             <option key={c.slug} value={c.slug}>
               {c.name}
             </option>
@@ -162,7 +163,7 @@ export default function ProductosPage() {
                           </div>
                         </td>
 
-                        <td className="px-3 py-3 text-verde/90">{getCategoryName(product.category)}</td>
+                        <td className="px-3 py-3 text-verde/90">{getCategoryName(settings.categories, product.category)}</td>
 
                         {/* Las ofertas se administran en la pantalla Ofertas: acá
                             sólo se muestran, para no tener dos lugares donde tocarlas. */}
@@ -227,7 +228,7 @@ export default function ProductosPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-bold">{product.name}</p>
                       <p className="text-[11px] text-verde/90">
-                        {product.unit} · {getCategoryName(product.category)}
+                        {product.unit} · {getCategoryName(settings.categories, product.category)}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">

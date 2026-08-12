@@ -6,8 +6,7 @@ import { PromotionPicker } from '@/components/admin/PromotionPicker';
 import { Badge, Toast, inputClass } from '@/components/admin/ui';
 import { CopyIcon, SearchIcon } from '@/components/icons';
 import { ProductImage } from '@/components/ProductImage';
-import { CATEGORIES } from '@/data/categories';
-import { useHydrated, useProducts } from '@/hooks/useStores';
+import { useHydrated, useProducts, useSettings } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
 import { describePromotion, getUnitPrice, hasPromotion, isActive, setPromotion } from '@/lib/products';
 import { upsertProducts } from '@/lib/stores';
@@ -16,6 +15,7 @@ import type { Product, Promotion } from '@/types';
 
 export default function OfertasPage() {
   const products = useProducts();
+  const settings = useSettings();
   const hydrated = useHydrated();
 
   /**
@@ -50,11 +50,13 @@ export default function OfertasPage() {
       return !q || normalizeText(p.name).includes(q);
     });
 
-    return CATEGORIES.map((categoria) => ({
-      categoria,
-      productos: visibles.filter((p) => p.category === categoria.slug),
-    })).filter((grupo) => grupo.productos.length > 0);
-  }, [borrador, query]);
+    return settings.categories
+      .map((categoria) => ({
+        categoria,
+        productos: visibles.filter((p) => p.category === categoria.slug),
+      }))
+      .filter((grupo) => grupo.productos.length > 0);
+  }, [borrador, query, settings.categories]);
 
   const hayResultados = porCategoria.length > 0;
 

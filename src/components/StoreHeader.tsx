@@ -19,7 +19,7 @@ type StoreHeaderProps = {
 export function StoreHeader({ query, onQueryChange }: StoreHeaderProps) {
   return (
     <header className="sticky top-0 z-30 bg-verde px-4 pb-3 pt-4 shadow-md">
-      <div className="mx-auto flex max-w-3xl flex-col gap-3">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <Logo className="h-8 w-auto" />
 

@@ -23,6 +23,10 @@ export function CartBar({ summary, onOpen }: CartBarProps) {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {/* Se queda en `max-w-3xl` aunque el resto de la tienda ahora llegue a
+          `max-w-7xl`: estirada a todo el ancho, la barra verde sólida se come
+          la pantalla en desktop. Angosta y centrada se lee como un botón
+          flotante, que es lo que es. */}
       <div className="mx-auto max-w-3xl">
         <button
           type="button"

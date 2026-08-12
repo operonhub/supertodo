@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   ClipboardIcon,
   ExternalIcon,
+  FolderIcon,
   LayoutIcon,
   LogOutIcon,
   PackageIcon,
@@ -25,6 +26,7 @@ type Item = {
 const ITEMS: Item[] = [
   { href: '/admin', label: 'Resumen', Icon: LayoutIcon },
   { href: '/admin/productos', label: 'Productos', Icon: PackageIcon },
+  { href: '/admin/categorias', label: 'Categorías', Icon: FolderIcon },
   { href: '/admin/ofertas', label: 'Ofertas', Icon: TagIcon },
   { href: '/admin/pedidos', label: 'Pedidos', Icon: ClipboardIcon },
   { href: '/admin/catering', label: 'Catering', Icon: PartyIcon },

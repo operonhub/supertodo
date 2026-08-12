@@ -9,7 +9,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsapp';
 export function StoreInfo() {
   return (
     <footer className="mt-6 border-t border-verde/10 bg-white/60 px-4 py-8">
-      <div className="mx-auto grid max-w-3xl gap-6 sm:grid-cols-2">
+      <div className="mx-auto grid max-w-7xl gap-6 sm:grid-cols-2">
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-extrabold">
             <MapPinIcon className="h-4 w-4 text-verde/70" />
@@ -51,7 +51,7 @@ export function StoreInfo() {
         </section>
       </div>
 
-      <p className="mx-auto mt-8 max-w-3xl text-center text-[11px] text-verde/90">
+      <p className="mx-auto mt-8 max-w-7xl text-center text-[11px] text-verde/90">
         {BUSINESS.name} — {BUSINESS.address.neighborhood}, {BUSINESS.address.city}
       </p>
     </footer>
