@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { BarcodeScanner } from '@/components/admin/BarcodeScanner';
 import { PhotoField } from '@/components/admin/PhotoField';
 import { SuggestedProductsPicker } from '@/components/admin/SuggestedProductsPicker';
-import { Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
+import { DeleteButton, Field, Modal, Toggle, inputClass, selectClass } from '@/components/admin/ui';
 import { CameraIcon } from '@/components/icons';
 import { CATEGORIES } from '@/data/categories';
 import { lookupBarcode } from '@/lib/barcode';
@@ -84,6 +84,7 @@ export function ProductFormModal({
   catalog,
   onClose,
   onSave,
+  onDelete,
 }: {
   /** `null` = alta. */
   product: Product | null;
@@ -96,6 +97,8 @@ export function ProductFormModal({
    * hubiera funcionado.
    */
   onSave: (product: Product) => Promise<void>;
+  /** Sólo al editar: en un alta todavía no hay nada que borrar. */
+  onDelete?: () => Promise<void>;
 }) {
   const [form, setForm] = useState<FormState>(() => (product ? toForm(product) : VACÍO));
   const [errores, setErrores] = useState<Errores>({});
@@ -320,6 +323,16 @@ export function ProductFormModal({
             Cancelar
           </button>
         </div>
+
+        {/* Sólo al editar, y separado de Guardar para que no se apriete de
+            paso. La foto del producto se borra junto con él, en el llamador. */}
+        {product && onDelete && (
+          <DeleteButton
+            label="Eliminar producto"
+            question={`¿Eliminar "${product.name}" del catálogo? No se puede deshacer.`}
+            onDelete={onDelete}
+          />
+        )}
       </form>
 
       {escaneando && (

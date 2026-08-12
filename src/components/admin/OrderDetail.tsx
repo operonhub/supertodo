@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, Modal, selectClass } from '@/components/admin/ui';
+import { Badge, DeleteButton, Modal, selectClass } from '@/components/admin/ui';
 import { AlertIcon, WhatsAppIcon } from '@/components/icons';
 import { useSettings } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
@@ -94,11 +94,13 @@ export function OrderDetail({
   onClose,
   onStatusChange,
   onPaymentChange,
+  onDelete,
 }: {
   order: Order | null;
   onClose: () => void;
   onStatusChange: (id: string, status: Order['status']) => void;
   onPaymentChange: (id: string, payment: Order['payment']) => void;
+  onDelete: (id: string) => Promise<void>;
 }) {
   if (!order) return null;
 
@@ -241,6 +243,15 @@ export function OrderDetail({
       >
         Cerrar
       </button>
+
+      {/* Para un pedido real que no se entrega conviene el estado "Cancelado",
+          que lo deja en la historia del día. Borrar es para la basura: los
+          sin confirmar que nunca llegaron y las pruebas. */}
+      <DeleteButton
+        label="Eliminar pedido"
+        question={`¿Eliminar el pedido #${order.id} de ${order.customer.name}? No se puede deshacer.`}
+        onDelete={() => onDelete(order.id)}
+      />
     </Modal>
   );
 }

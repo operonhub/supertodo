@@ -225,6 +225,24 @@ export async function setOrderPayment(id: string, payment: Order['payment']): Pr
   return patchOrder(id, { payment_status: payment });
 }
 
+/**
+ * Borra el pedido de verdad, sin vuelta atrás.
+ *
+ * Está pensado para la basura que se junta sola: los pedidos sin confirmar
+ * que nunca llegaron por WhatsApp y las pruebas. Para un pedido real que no
+ * se va a entregar es mejor el estado `cancelado`, que lo deja en la
+ * historia del día en vez de hacerlo desaparecer.
+ */
+export async function removeOrder(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('orders').delete().eq('id', id);
+
+  if (error) throw new Error(`No se pudo borrar el pedido: ${error.message}`);
+
+  orderSnapshot = orderSnapshot.filter((p) => p.id !== id);
+  emitOrders();
+}
+
 /* ================================================================
    CONFIGURACIÓN DEL COMERCIO — Supabase, fila única
 ================================================================ */

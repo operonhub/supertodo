@@ -22,7 +22,7 @@ import {
   type OrderFilters,
   type OrderSort,
 } from '@/lib/orders';
-import { refreshOrders, setOrderPayment, setOrderStatus } from '@/lib/stores';
+import { refreshOrders, removeOrder, setOrderPayment, setOrderStatus } from '@/lib/stores';
 import type { Order } from '@/types';
 
 const RANGOS: { value: OrderFilters['range']; label: string }[] = [
@@ -91,6 +91,14 @@ export default function PedidosPage() {
     setFilters((f) => ({ ...f, [campo]: valor }));
 
   const cerrarDetalle = useCallback(() => setDetalleId(null), []);
+
+  // El error se deja subir para que `DeleteButton` lo muestre donde se apretó,
+  // en vez de cerrar el detalle como si hubiera funcionado.
+  const eliminar = useCallback(async (id: string) => {
+    await removeOrder(id);
+    setDetalleId(null);
+    setAviso('Pedido eliminado');
+  }, []);
 
   const totalVisible = visibles.reduce((sum, o) => sum + o.total, 0);
 
@@ -396,6 +404,7 @@ export default function PedidosPage() {
         onClose={cerrarDetalle}
         onStatusChange={cambiarEstado}
         onPaymentChange={cambiarPago}
+        onDelete={eliminar}
       />
 
       <Toast message={aviso} onDone={() => setAviso(null)} />

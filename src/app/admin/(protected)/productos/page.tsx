@@ -9,8 +9,9 @@ import { ProductImage } from '@/components/ProductImage';
 import { CATEGORIES, getCategoryName } from '@/data/categories';
 import { useProducts } from '@/hooks/useStores';
 import { formatARS } from '@/lib/currency';
+import { deleteProductPhoto, esFotoPropia } from '@/lib/photos';
 import { describePromotion, getUnitPrice, isActive } from '@/lib/products';
-import { upsertProduct } from '@/lib/stores';
+import { removeProduct, upsertProduct } from '@/lib/stores';
 import { normalizeText } from '@/lib/text';
 import type { CategorySlug, Product } from '@/types';
 
@@ -57,6 +58,22 @@ export default function ProductosPage() {
     await upsertProduct(product);
     setModalAbierto(false);
     setAviso(editando ? 'Producto actualizado' : 'Producto agregado');
+  };
+
+  const eliminar = async () => {
+    if (!editando) return;
+
+    // Primero la fila: si esto tira, el error sube al botón y el producto
+    // queda intacto. La foto se borra después y en silencio — un archivo
+    // huérfano en el Storage no justifica frenar nada.
+    await removeProduct(editando.id);
+
+    if (editando.imageUrl && esFotoPropia(editando.imageUrl)) {
+      await deleteProductPhoto(editando.imageUrl);
+    }
+
+    setModalAbierto(false);
+    setAviso('Producto eliminado');
   };
 
   return (
@@ -265,6 +282,7 @@ export default function ProductosPage() {
           catalog={products}
           onClose={cerrarModal}
           onSave={guardar}
+          onDelete={eliminar}
         />
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CloseIcon } from '@/components/icons';
 
 /* ================================================================
@@ -196,6 +196,87 @@ export function Field({
       {hint && !error && <p className="mt-1 text-[11px] text-verde/90">{hint}</p>}
       {error && (
         <p id={`${htmlFor}-error`} role="alert" className="mt-1 text-[11px] font-semibold text-rojo">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Botón de borrar con confirmación en el lugar.
+ *
+ * La confirmación se muestra **dentro** del mismo bloque y no en otro diálogo
+ * encima: los dos usos viven adentro de un `Modal`, y anidar modales pelearía
+ * por el Escape y por el scroll del fondo (los dos lo bloquean), con lo que
+ * una sola tecla cerraría el aviso y la pantalla de atrás.
+ *
+ * `borrando` sólo se apaga si falla: cuando sale bien, quien llama cierra el
+ * modal y este componente se desmonta.
+ */
+export function DeleteButton({
+  label,
+  question,
+  onDelete,
+}: {
+  /** Texto del botón en reposo: "Eliminar producto". */
+  label: string;
+  /** Lo que se pregunta antes de borrar. Tiene que decir que no se deshace. */
+  question: string;
+  onDelete: () => Promise<void>;
+}) {
+  const [preguntando, setPreguntando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirmar() {
+    setError(null);
+    setBorrando(true);
+    try {
+      await onDelete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar.');
+      setBorrando(false);
+    }
+  }
+
+  if (!preguntando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setPreguntando(true)}
+        className="mt-4 w-full rounded-xl border border-rojo/25 px-5 py-2.5 text-sm font-bold text-rojo transition-colors hover:bg-rojo/5"
+      >
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-rojo/25 bg-rojo/5 p-4">
+      <p className="mb-3 text-sm font-semibold text-rojo">{question}</p>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={confirmar}
+          disabled={borrando}
+          className="flex-1 rounded-xl bg-rojo px-5 py-2.5 text-sm font-extrabold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {borrando ? 'Eliminando…' : 'Sí, eliminar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPreguntando(false)}
+          disabled={borrando}
+          className="rounded-xl border border-verde/20 bg-white px-5 py-2.5 text-sm font-bold text-verde transition-colors hover:bg-verde/5 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-2 text-[11px] font-semibold text-rojo">
           {error}
         </p>
       )}
