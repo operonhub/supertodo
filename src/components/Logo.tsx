@@ -22,7 +22,10 @@ export function Logo({
       // borde real del arte (cápsula + lettering en dos líneas + carrito +
       // píldora "digital"), sin tocar ningún path: a la misma altura de
       // contenedor, se ve más grande y no hace falta re-dibujar nada.
-      viewBox="50 105 1000 565"
+      // Alto medido con getBoundingClientRect() contra el SVG renderizado
+      // (no a mano): la píldora "digital" llega hasta y≈686.5, así que el
+      // primer recorte (565 de alto) la cortaba por abajo.
+      viewBox="50 105 1000 590"
       className={className}
       role="img"
       aria-label={BUSINESS.name}
