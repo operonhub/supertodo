@@ -1,12 +1,12 @@
 /**
  * Búsqueda de productos por código de barras, en cadena por tres fuentes.
  *
- * 1. Precios Claros (tabla propia en Supabase, poblada por
- *    `scripts/ingest-precios-claros.mjs`): la más probable de acertar con
- *    productos argentinos de almacén, marca chica incluida, y la más rápida
- *    (consulta local, no un fetch externo).
- * 2. Open Food Facts: buena para fotos y marcas conocidas que la muestra de
- *    Precios Claros no tenga cargadas.
+ * 1. Open Food Facts: primera opción — es la única de las tres con fotos, y
+ *    suele tener los productos de marca conocida.
+ * 2. Precios Claros (tabla propia en Supabase, poblada por
+ *    `scripts/ingest-precios-claros.mjs`): respaldo para lo que Open Food
+ *    Facts no tenga cargado, sobre todo marcas chicas/locales argentinas.
+ *    Nunca trae foto (esa API no la tiene), sólo nombre/presentación.
  * 3. UPCItemDB, vía `/api/barcode-lookup` (Route Handler propio): ese
  *    endpoint sólo responde CORS a su propio dominio, así que un fetch
  *    directo desde el navegador queda bloqueado en silencio — tiene que
@@ -77,8 +77,8 @@ async function lookupUpcItemDb(code: string): Promise<BarcodeLookupResult | null
 
 export async function lookupBarcode(code: string): Promise<BarcodeLookupResult | null> {
   return (
-    (await lookupPreciosClaros(code)) ??
     (await lookupOpenFoodFacts(code)) ??
+    (await lookupPreciosClaros(code)) ??
     (await lookupUpcItemDb(code))
   );
 }
