@@ -134,18 +134,21 @@ export function CartSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div
         className="animate-fade-in absolute inset-0 bg-verde-dark/50"
         onClick={onClose}
         aria-hidden="true"
       />
 
+      {/* `w-full max-w-2xl mx-auto` en vez de `inset-x-0`: en mobile ocupa
+          todo el ancho igual que antes, pero en desktop no se estira a lo
+          ancho de toda la pantalla — mismo patrón que ya usa `CartBar`. */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-pedido"
-        className="animate-sheet-in absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col rounded-t-3xl bg-crema"
+        className="animate-sheet-in mx-auto flex max-h-[90dvh] w-full max-w-2xl flex-col rounded-t-3xl bg-crema"
       >
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
           <h2 id="titulo-pedido" className="text-lg font-extrabold">
