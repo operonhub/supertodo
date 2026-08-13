@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BarcodeScanner } from '@/components/admin/BarcodeScanner';
 import { PhotoField } from '@/components/admin/PhotoField';
 import { SuggestedProductsPicker } from '@/components/admin/SuggestedProductsPicker';
@@ -118,6 +118,9 @@ export function ProductFormModal({
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
   const [escaneando, setEscaneando] = useState(false);
   const [buscandoDatos, setBuscandoDatos] = useState(false);
+  const [sinResultado, setSinResultado] = useState(false);
+  /** Descarta la respuesta de un escaneo viejo si ya se disparó uno más nuevo. */
+  const solicitudRef = useRef(0);
 
   const set = <K extends keyof FormState>(campo: K, valor: FormState[K]) =>
     setForm((f) => ({ ...f, [campo]: valor }));
@@ -128,11 +131,21 @@ export function ProductFormModal({
     setEscaneando(false);
     set('barcode', codigo);
 
+    const idSolicitud = ++solicitudRef.current;
+    setSinResultado(false);
     setBuscandoDatos(true);
+
     const encontrado = await lookupBarcode(codigo);
+
+    // Llegó un escaneo más nuevo mientras esta búsqueda estaba en vuelo: su
+    // resultado ya no corresponde a lo que hay cargado en el campo.
+    if (idSolicitud !== solicitudRef.current) return;
     setBuscandoDatos(false);
 
-    if (!encontrado) return;
+    if (!encontrado) {
+      setSinResultado(true);
+      return;
+    }
     setForm((f) => ({
       ...f,
       name: encontrado.name,
@@ -193,14 +206,23 @@ export function ProductFormModal({
         <Field
           label="Código de barras"
           htmlFor="p-barcode"
-          hint={buscandoDatos ? 'Buscando nombre y foto…' : 'Opcional. Escanealo para autocompletar'}
+          hint={
+            buscandoDatos
+              ? 'Buscando nombre y foto…'
+              : sinResultado
+                ? 'No encontramos datos para este código. Completá el nombre a mano.'
+                : 'Opcional. Escanealo para autocompletar'
+          }
         >
           <div className="flex gap-2">
             <input
               id="p-barcode"
               className={inputClass}
               value={form.barcode}
-              onChange={(e) => set('barcode', e.target.value)}
+              onChange={(e) => {
+                set('barcode', e.target.value);
+                setSinResultado(false);
+              }}
             />
             <button
               type="button"

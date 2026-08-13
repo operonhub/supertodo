@@ -85,6 +85,33 @@ export type Database = {
         }
         Relationships: []
       }
+      precios_claros_productos: {
+        Row: {
+          barcode: string
+          fuente_sucursal_id: string | null
+          marca: string | null
+          nombre: string
+          presentacion: string | null
+          updated_at: string
+        }
+        Insert: {
+          barcode: string
+          fuente_sucursal_id?: string | null
+          marca?: string | null
+          nombre: string
+          presentacion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string
+          fuente_sucursal_id?: string | null
+          marca?: string | null
+          nombre?: string
+          presentacion?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean
@@ -268,9 +295,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

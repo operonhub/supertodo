@@ -41,9 +41,12 @@ export function BarcodeScanner({
         const c = await lector.decodeFromConstraints(
           { video: { facingMode: 'environment' } },
           videoRef.current!,
-          (resultado) => {
+          (resultado, _error, controlesEnCurso) => {
             if (resultado && !cancelado && !detectado) {
               detectado = true;
+              // Apaga la cámara ya en este instante, no recién cuando el
+              // padre desmonte el componente al procesar la detección.
+              controlesEnCurso.stop();
               onDetectedRef.current(resultado.getText());
             }
           },

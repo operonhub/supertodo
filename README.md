@@ -150,6 +150,33 @@ para que el dueño lo use y diga qué le falta, pero conviene tenerlo claro:
 4. **Catering**, cuando el dueño defina menús, precios, seña y logística.
 5. **Dominio propio**, para reemplazar el link de Vercel.
 
+## Precios Claros
+
+Una de las tres fuentes que autocompletan datos al escanear un código de barras
+en Productos (`src/lib/barcode.ts`) es una tabla propia,
+`precios_claros_productos`, poblada a partir de la API pública de **Precios
+Claros** (`preciosclaros.gob.ar`, el sistema oficial de precios del gobierno
+argentino, alimentado por los supermercados). Es la fuente con mejor cobertura
+para productos argentinos de marca chica/local, que Open Food Facts y
+UPCItemDB suelen no tener cargados.
+
+Esa API sólo permite listar el catálogo completo de una sucursal, no buscar
+un código puntual — por eso hace falta una ingesta previa, no es "una llamada
+más" como las otras dos fuentes.
+
+**Para poblarla o refrescarla** (no hace falta seguido: la relación código de
+barras↔nombre no cambia tanto como el precio, que acá ni se usa — el dueño
+carga el suyo en Productos):
+
+```bash
+node --env-file=.env.local scripts/ingest-precios-claros.mjs
+```
+
+Requiere `SUPABASE_SERVICE_ROLE_KEY` en `.env.local` (Supabase → Configuración
+del proyecto → API → Project API keys → `service_role`). Es secreta, bypassea
+RLS, y sólo la usa este script corrido a mano — nunca hace falta cargarla en
+Vercel.
+
 ## Referencia
 
 En `demo/index.html` está la demo de venta original (las tres vistas: tienda, panel
