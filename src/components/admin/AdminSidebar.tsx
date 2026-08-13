@@ -57,7 +57,7 @@ export function AdminSidebar() {
   return (
     <aside className="shrink-0 bg-verde-dark text-white lg:min-h-dvh lg:w-60">
       <div className="px-5 pb-2 pt-4 lg:pb-4 lg:pt-6">
-        <Logo className="hidden h-9 w-auto lg:block" />
+        <Logo className="hidden h-14 w-auto lg:block" />
         <p className="text-[11px] font-medium text-white/75 lg:mt-2">
           <span className="lg:block">Panel del comercio</span>
           <span className="lg:hidden"> · </span>

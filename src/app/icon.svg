@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="832.5 331.5 200 200" role="img" aria-label="Carrito Super Todo">
+  <defs>
+    <clipPath id="roundel-clip">
+      <circle cx="932.5" cy="431.5" r="78.5"/>
+    </clipPath>
+    <clipPath id="basket-clip">
+      <path d="M891.2 388.6H1008.4L990.6 456.7H907.1Z"/>
+    </clipPath>
+    <linearGradient id="basket-warmth" x1="0" y1="0" x2="0.83" y2="1">
+      <stop offset="0" stop-color="#fff4a0"/>
+      <stop offset="0.48" stop-color="#ffc53a"/>
+      <stop offset="1" stop-color="#f47b20"/>
+    </linearGradient>
+    <linearGradient id="cart-base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#73d9bd"/>
+      <stop offset="1" stop-color="#42aa8c"/>
+    </linearGradient>
+    <radialGradient id="wheel-hub" cx="38%" cy="32%" r="68%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c7e6e7"/>
+    </radialGradient>
+    <filter id="cart-shadow" x="-22%" y="-20%" width="155%" height="165%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="3.5" dy="5" stdDeviation="4" flood-color="#07121e" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#cart-shadow)">
+    <circle cx="932.5" cy="431.5" r="87.7"
+            fill="#fbfbf4" stroke="#0a1620" stroke-width="4.5"/>
+    <circle cx="932.5" cy="431.5" r="79.2" fill="#f8f7da"/>
+
+    <g clip-path="url(#roundel-clip)">
+      <path d="M845 386.2C866.2 353.5 902.2 339 939.5 345.8
+               C973.3 351.9 998.2 370.4 1012.8 397.8
+               C984.8 376.8 958.8 369.7 933 370.8
+               C900.8 372.2 873.6 385 849.7 408.2Z"
+            fill="#54a91b"/>
+      <path d="M851.5 376.3C874.8 352 906.2 341.9 939.1 347.8
+               C967.6 352.9 990.5 368 1005 388.3"
+            fill="none" stroke="#ffffff" stroke-width="9.2"/>
+      <path d="M947.5 351.8C977.2 359.2 1000 378.5 1011.7 405.2
+               L1012.7 461.2L949.5 435Z"
+            fill="#f5a11d"/>
+      <path d="M851.9 385.5C871 374.2 896.7 369.9 921.2 370.9
+               C944.4 371.8 966.9 378.6 984 389.2
+               L970.3 499.3H851.9Z"
+            fill="#74ad20"/>
+      <path d="M852.5 400.5C875 386.4 901.9 381.8 928.1 384.1
+               C951.7 386.2 975.8 394.7 995.4 407"
+            fill="none" stroke="#f3f1bb" stroke-width="7.8"/>
+      <path d="M849.7 414C872.7 400.2 900.4 395.6 928.7 398.3
+               C954.6 400.8 980 409.9 1000.1 423.3"
+            fill="none" stroke="#f7f3ca" stroke-width="6.5"/>
+      <path d="M848.4 428.1C873 415.7 898.1 411.1 925 414.3
+               C951 417.4 977 427.6 997.7 442.8"
+            fill="none" stroke="#315f20" stroke-width="3.3" opacity="0.88"/>
+      <path d="M847.5 443.1C873.1 431.8 900 429.4 926.8 433.8
+               C953.7 438.1 976.7 448.6 994.6 462.4"
+            fill="none" stroke="#2e6e20" stroke-width="3.1"/>
+      <path d="M849.4 466.5C871.4 451.2 897 446.2 923.9 450.9
+               C952.5 455.9 978.1 471.9 995.8 493.4
+               H860.8Z"
+            fill="#36871d"/>
+      <path d="M851.6 477.8H1004.3V498.3H851.6Z" fill="#176b29"/>
+      <path d="M934.4 350V510" stroke="#ffffff" stroke-width="4.2" opacity="0.45"/>
+    </g>
+
+    <g fill="none" stroke-linecap="round">
+      <path d="M836.5 389.6H904" stroke="#5da61e" stroke-width="2.5"/>
+      <path d="M842.5 399.2H899.5" stroke="#eff2b8" stroke-width="2.3"/>
+      <path d="M837.8 409.6H903" stroke="#2e771c" stroke-width="2.4"/>
+      <path d="M840.3 421H900.5" stroke="#e2ec9c" stroke-width="2.2"/>
+      <path d="M838.1 434.1H899" stroke="#397f1c" stroke-width="2.4"/>
+      <path d="M844.5 447H897" stroke="#dce99c" stroke-width="2"/>
+    </g>
+
+    <g clip-path="url(#basket-clip)">
+      <path d="M887 386H1012V461H887Z" fill="url(#basket-warmth)"/>
+      <path d="M889.5 387.6H911L918.2 459H901.8Z" fill="#9bc42b"/>
+      <path d="M925.2 388H942.5L944.7 458H932Z" fill="#fff3b2" opacity="0.88"/>
+      <path d="M958.5 388H975.5L970 458H956.5Z" fill="#ffe997" opacity="0.82"/>
+      <path d="M992 388H1011L993 458H980.5Z" fill="#fff3a5" opacity="0.9"/>
+    </g>
+
+    <path d="M849.4 350.5L872.5 354.1
+             C877 354.8 879.9 357.4 880.9 361.7L903.7 451.7"
+          fill="none" stroke="#07121b" stroke-width="16.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M849.4 350.5L872.5 354.1
+             C877 354.8 879.9 357.4 880.9 361.7L903.7 451.7"
+          fill="none" stroke="#b6dd42" stroke-width="7.4"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M887.2 381.1H1014.9
+             C1019.3 381.1 1021.8 383.7 1021.2 387.3
+             C1020.7 390.4 1018.4 392 1014.9 392H888.5Z"
+          fill="#c9ea62" stroke="#07121b" stroke-width="5.7"
+          stroke-linejoin="round"/>
+    <path d="M891.2 390.6L907.1 456.7H990.6L1007.3 390.6"
+          fill="none" stroke="#07121b" stroke-width="5.7"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g fill="none" stroke="#07121b" stroke-width="5.1" stroke-linecap="round">
+      <path d="M905.7 392.5L914.8 454.3"/>
+      <path d="M927.7 392.5L932.1 454.3"/>
+      <path d="M950 392.5L950.2 454.3"/>
+      <path d="M973 392.5L968.4 454.3"/>
+      <path d="M995.6 392.5L986.8 454.3"/>
+    </g>
+
+    <path d="M902.7 453.5H994.7L990.3 463.1
+             C989 466.1 986.5 467.5 982.8 467.5H912.7
+             C908.3 467.5 905.9 465.5 904.8 461.7Z"
+          fill="url(#cart-base)" stroke="#07121b" stroke-width="5.5"
+          stroke-linejoin="round"/>
+    <path d="M910.2 469.7H996.3
+             C999.8 469.7 1001.6 472.4 1000.2 475.4L998.6 478.9
+             C997.4 481.6 995.1 482.8 991.8 482.8H911.7"
+          fill="#66a82d" stroke="#07121b" stroke-width="5.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g>
+      <circle cx="903.5" cy="499.4" r="17.2" fill="#07121b"/>
+      <circle cx="903.5" cy="499.4" r="12.4" fill="#d09b5d" stroke="#f7ddb2" stroke-width="1.6"/>
+      <circle cx="903.5" cy="499.4" r="6.8" fill="url(#wheel-hub)" stroke="#07121b" stroke-width="2.1"/>
+      <circle cx="976.8" cy="499.4" r="17.2" fill="#07121b"/>
+      <circle cx="976.8" cy="499.4" r="12.4" fill="#d09b5d" stroke="#f7ddb2" stroke-width="1.6"/>
+      <circle cx="976.8" cy="499.4" r="6.8" fill="url(#wheel-hub)" stroke="#07121b" stroke-width="2.1"/>
+    </g>
+  </g>
+</svg>

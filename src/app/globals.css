@@ -78,6 +78,40 @@ body {
   animation: fade-in 0.2s ease both;
 }
 
+/* Entrada del logo (login, hero del catálogo): "Super Todo" aparece y el
+   carrito entra después deslizándose — un solo gesto, no dos efectos
+   sueltos. El carrito arranca en 0.32s, mientras el resto todavía está
+   terminando, para que no se sienta como dos animaciones pegadas. */
+@keyframes logo-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes logo-cart-in {
+  from {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-logo-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: logo-mark-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-logo-cart {
+  transform-box: fill-box;
+  animation: logo-cart-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
+}
+
 /* Quien prefiera menos movimiento no ve ninguna de estas transiciones. */
 @media (prefers-reduced-motion: reduce) {
   *,

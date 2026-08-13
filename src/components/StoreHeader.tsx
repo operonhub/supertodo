@@ -21,7 +21,7 @@ export function StoreHeader({ query, onQueryChange }: StoreHeaderProps) {
     <header className="sticky top-0 z-30 bg-verde px-4 pb-3 pt-4 shadow-md">
       <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <Logo className="h-8 w-auto" />
+          <Logo animated className="h-12 w-auto" />
 
           <div className="text-right">
             {BUSINESS.rating && (

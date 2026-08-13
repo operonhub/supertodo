@@ -55,9 +55,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-crema px-4">
+    <div className="grid min-h-dvh place-items-center bg-verde-dark px-4">
       <div className="w-full max-w-sm">
-        <Logo className="mx-auto mb-6 h-12 w-auto" />
+        <Logo animated className="mx-auto mb-8 h-24 w-auto" />
 
         <form
           onSubmit={onSubmit}
