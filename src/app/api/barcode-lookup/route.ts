@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import type { BarcodeLookupResult } from '@/lib/barcode';
 
 const TIMEOUT_MS = 4000;
@@ -11,10 +12,20 @@ const TIMEOUT_MS = 4000;
  * Endpoint de prueba, sin key ni cuenta: comparte límite de uso con otros
  * usuarios de esa API, así que puede fallar bajo mucho tráfico ajeno — para
  * las consultas ocasionales de un almacén de barrio no debería notarse.
+ *
+ * Sólo lo llama el panel (ya logueado), pero al ser una ruta HTTP normal
+ * cualquiera podría pegarle directo sin pasar por `/admin`, que es lo único
+ * que protege `proxy.ts`. Mismo chequeo de sesión que el proxy, acá también.
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
   if (!code) return NextResponse.json(null);
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
 
   try {
     const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`, {
