@@ -269,6 +269,23 @@ export function ImageIcon({ className }: IconProps) {
   );
 }
 
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...strokeProps}>
+      <path d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16" />
+    </svg>
+  );
+}
+
+/** El ícono de "compartir" de iOS: un cuadrado con una flecha saliendo hacia arriba. */
+export function ShareIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...strokeProps}>
+      <path d="M12 2v13m0-13 4 4m-4-4-4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
+  );
+}
+
 export function WhatsAppIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">

@@ -142,6 +142,39 @@ export default function ConfiguracionPage() {
         </section>
 
         <section className="rounded-2xl bg-white p-5 shadow-card sm:p-6">
+          <h2 className="mb-1 text-sm font-extrabold">Zona de envío</h2>
+          <p className="mb-4 text-[11px] text-verde/90">
+            Es sólo un aviso para el cliente al elegir &quot;Envío a domicilio&quot;: no bloquea el
+            pedido. Los pedidos de fuera de la zona igual se pueden revisar y cancelar por
+            WhatsApp.
+          </p>
+
+          <Field label="Radio de cobertura (km)" htmlFor="c-radio-envio">
+            <input
+              id="c-radio-envio"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              className={`${inputClass} w-28`}
+              value={form.delivery.radiusKm}
+              onChange={(e) =>
+                set('delivery', { ...form.delivery, radiusKm: Number(e.target.value) || 0 })
+              }
+            />
+          </Field>
+
+          <Field label="Texto del aviso" htmlFor="c-nota-envio">
+            <textarea
+              id="c-nota-envio"
+              rows={3}
+              className={`${inputClass} resize-none`}
+              value={form.delivery.note}
+              onChange={(e) => set('delivery', { ...form.delivery, note: e.target.value })}
+            />
+          </Field>
+        </section>
+
+        <section className="rounded-2xl bg-white p-5 shadow-card sm:p-6">
           <h2 className="mb-4 text-sm font-extrabold">Horarios</h2>
 
           {form.hours.map((h, i) => (

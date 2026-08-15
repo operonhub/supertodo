@@ -224,6 +224,7 @@ export function CartSheet({
             onChange={setCheckout}
             errors={errores}
             paymentMethods={settings.paymentMethods}
+            delivery={settings.delivery}
           />
 
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-verde/90">

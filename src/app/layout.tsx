@@ -16,6 +16,21 @@ const bricolage = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: `${BUSINESS.name} — Pedidos por WhatsApp`,
   description: `Mirá las ofertas de ${BUSINESS.name}, armá tu pedido y lo retirás por ${FULL_ADDRESS}.`,
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  },
+  // `apple-icon.png` en `src/app/` ya se detecta solo y agrega su propio
+  // `<link rel="apple-touch-icon">`; acá sólo falta avisarle a iOS que la
+  // página se puede abrir standalone (sin la barra de Safari).
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: BUSINESS.name,
+  },
 };
 
 export const viewport: Viewport = {

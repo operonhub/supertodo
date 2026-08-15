@@ -1,4 +1,5 @@
-import type { DeliveryMode, PaymentMethod } from '@/types';
+import { MapPinIcon } from '@/components/icons';
+import type { BusinessConfig, DeliveryMode, PaymentMethod } from '@/types';
 
 export interface CheckoutValue {
   name: string;
@@ -49,11 +50,13 @@ export function CheckoutFields({
   onChange,
   errors,
   paymentMethods,
+  delivery,
 }: {
   value: CheckoutValue;
   onChange: (next: CheckoutValue) => void;
   errors: CheckoutErrores;
   paymentMethods: PaymentMethod[];
+  delivery: BusinessConfig['delivery'];
 }) {
   const set = <K extends keyof CheckoutValue>(campo: K, valor: CheckoutValue[K]) =>
     onChange({ ...value, [campo]: valor });
@@ -153,6 +156,11 @@ export function CheckoutFields({
 
       {value.delivery === 'reparto' && (
         <div>
+          <p className="mb-2.5 flex items-start gap-1.5 rounded-xl bg-verde-soft px-3 py-2.5 text-[12px] font-medium leading-snug text-verde-dark">
+            <MapPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-verde/70" />
+            {delivery.note}
+          </p>
+
           <label htmlFor="co-direccion" className="mb-1 block text-xs font-semibold text-verde/90">
             Dirección de envío
           </label>

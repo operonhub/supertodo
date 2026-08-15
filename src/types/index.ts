@@ -169,6 +169,15 @@ export interface BusinessConfig {
     detail: string;
   };
   /**
+   * Zona de reparto a domicilio. Es sólo un aviso de texto en el checkout,
+   * no una validación real: el dueño revisa cada pedido a mano por WhatsApp
+   * antes de prepararlo, así que alcanza con aclarar el radio de cobertura.
+   */
+  delivery: {
+    radiusKm: number;
+    note: string;
+  };
+  /**
    * Franja de ofertas del día. En `null` la barra no se muestra,
    * así se puede apagar sin tocar componentes.
    */

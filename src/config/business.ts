@@ -36,6 +36,11 @@ export const BUSINESS: BusinessConfig = {
     detail: 'Preparamos tu pedido y te avisamos por WhatsApp cuando está listo.',
   },
 
+  delivery: {
+    radiusKm: 5,
+    note: 'Hacemos envíos hasta 5 km a la redonda de Monte Chingolo. Si tu domicilio queda más lejos, mejor coordiná el retiro o escribinos antes de pedir.',
+  },
+
   offerBanner: {
     title: 'Ofertas de la semana',
     detail: 'Precios vigentes hasta el sábado a las 21h',
