@@ -1,4 +1,5 @@
 import { BagIcon, ClockIcon, MapPinIcon, WhatsAppIcon } from '@/components/icons';
+import { OperonBadge } from '@/components/OperonBadge';
 import { BUSINESS, FULL_ADDRESS } from '@/config/business';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 
@@ -54,6 +55,10 @@ export function StoreInfo() {
       <p className="mx-auto mt-8 max-w-7xl text-center text-[11px] text-verde/90">
         {BUSINESS.name} — {BUSINESS.address.neighborhood}, {BUSINESS.address.city}
       </p>
+
+      <div className="mx-auto mt-3 flex max-w-7xl justify-center">
+        <OperonBadge className="text-verde/50 hover:text-verde-dark" />
+      </div>
     </footer>
   );
 }

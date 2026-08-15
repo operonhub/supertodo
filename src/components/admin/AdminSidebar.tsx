@@ -14,6 +14,7 @@ import {
   TagIcon,
 } from '@/components/icons';
 import { Logo } from '@/components/Logo';
+import { OperonBadge } from '@/components/OperonBadge';
 import { useSettings } from '@/hooks/useStores';
 import { createClient } from '@/lib/supabase/client';
 
@@ -102,6 +103,8 @@ export function AdminSidebar() {
           <LogOutIcon className="h-3.5 w-3.5" />
           Cerrar sesión
         </button>
+
+        <OperonBadge className="mt-3 px-3.5 text-white/40 hover:text-white/70" />
       </div>
     </aside>
   );
