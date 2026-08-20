@@ -120,6 +120,21 @@ export async function removeProduct(id: string): Promise<void> {
    PEDIDOS — Supabase
 ================================================================ */
 
+/**
+ * Left embed: los pedidos legacy sin `customer_id` siguen apareciendo y el
+ * mapper cae en sus columnas denormalizadas; los nuevos suman la cuenta real.
+ */
+const ORDER_WITH_CUSTOMER_SELECT = `
+  *,
+  customer_account:customers (
+    nombre,
+    apellido,
+    telefono,
+    dni,
+    direccion
+  )
+`;
+
 const SIN_PEDIDOS: Order[] = [];
 
 let orderSnapshot: Order[] = SIN_PEDIDOS;
@@ -135,7 +150,10 @@ function emitOrders() {
 /** Tira si falla: quien la llama decide si el error se muestra o se calla. */
 async function fetchOrders(): Promise<void> {
   const supabase = createClient();
-  const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('orders')
+    .select(ORDER_WITH_CUSTOMER_SELECT)
+    .order('created_at', { ascending: false });
 
   if (error) throw new Error(`No se pudieron cargar los pedidos: ${error.message}`);
 
@@ -192,7 +210,12 @@ export function addOrderToSnapshot(order: Order) {
 
 async function patchOrder(id: string, cambios: TablesUpdate<'orders'>): Promise<Order> {
   const supabase = createClient();
-  const { data, error } = await supabase.from('orders').update(cambios).eq('id', id).select().single();
+  const { data, error } = await supabase
+    .from('orders')
+    .update(cambios)
+    .eq('id', id)
+    .select(ORDER_WITH_CUSTOMER_SELECT)
+    .single();
 
   if (error) throw new Error(`No se pudo actualizar el pedido: ${error.message}`);
 

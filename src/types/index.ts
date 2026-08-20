@@ -281,8 +281,11 @@ export interface Order {
   customer: {
     name: string;
     phone: string;
-    /** Sólo tiene valor si `delivery === 'reparto'`. */
+    /** Domicilio elegido para este pedido; sólo existe con reparto. */
     address?: string;
+    /** Datos vigentes de la cuenta; faltan en pedidos legacy sin customer_id. */
+    dni?: string;
+    accountAddress?: string;
   };
   items: OrderItem[];
   total: number;

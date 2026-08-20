@@ -134,16 +134,46 @@ export function OrderDetail({
 
       <section className="mb-4 rounded-2xl bg-white p-4">
         <h3 className="mb-2 text-sm font-extrabold">Cliente</h3>
-        <p className="text-sm font-semibold">{order.customer.name}</p>
-        <a
-          href={`tel:${order.customer.phone.replace(/\s/g, '')}`}
-          className="precio text-sm text-verde underline-offset-2 hover:underline"
-        >
-          {order.customer.phone}
-        </a>
-        {order.delivery === 'reparto' && order.customer.address && (
-          <p className="mt-1 text-sm text-verde-dark">{order.customer.address}</p>
-        )}
+        <p className="mb-2 text-sm font-extrabold">{order.customer.name}</p>
+
+        <dl className="space-y-2 text-sm">
+          <div>
+            <dt className="text-[11px] font-semibold text-verde/70">Teléfono</dt>
+            <dd>
+              <a
+                href={`tel:${order.customer.phone.replace(/\D/g, '')}`}
+                className="precio text-verde underline-offset-2 hover:underline"
+              >
+                {order.customer.phone}
+              </a>
+            </dd>
+          </div>
+
+          {order.customer.dni && (
+            <div>
+              <dt className="text-[11px] font-semibold text-verde/70">DNI</dt>
+              <dd className="precio text-verde-dark">{order.customer.dni}</dd>
+            </div>
+          )}
+
+          {order.customer.accountAddress && (
+            <div>
+              <dt className="text-[11px] font-semibold text-verde/70">Dirección de la cuenta</dt>
+              <dd className="break-words text-verde-dark">{order.customer.accountAddress}</dd>
+            </div>
+          )}
+
+          {order.delivery === 'reparto' &&
+            order.customer.address &&
+            order.customer.address !== order.customer.accountAddress && (
+              <div>
+                <dt className="text-[11px] font-semibold text-verde/70">
+                  {order.customer.accountAddress ? 'Entrega de este pedido' : 'Dirección de entrega'}
+                </dt>
+                <dd className="break-words text-verde-dark">{order.customer.address}</dd>
+              </div>
+            )}
+        </dl>
       </section>
 
       <section className="mb-4 rounded-2xl bg-white p-4">

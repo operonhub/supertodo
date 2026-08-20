@@ -5,6 +5,15 @@ type ProductRow = Tables<'products'>;
 type ProductInsert = TablesInsert<'products'>;
 type OrderRow = Tables<'orders'>;
 type OrderInsert = TablesInsert<'orders'>;
+type CustomerAccountRow = Pick<
+  Tables<'customers'>,
+  'nombre' | 'apellido' | 'telefono' | 'dni' | 'direccion'
+>;
+
+/** Resultado del embed `customer_account:customers(...)` usado por el store. */
+export type OrderWithCustomerRow = OrderRow & {
+  customer_account: CustomerAccountRow | null;
+};
 
 /**
  * El tipo `Json` generado exige index signature en cada objeto anidado, algo
@@ -56,15 +65,20 @@ export function productToRow(product: Product): ProductInsert {
   };
 }
 
-/** Fila de Supabase → `Order` del dominio. */
-export function rowToOrder(row: OrderRow): Order {
+/** Fila de Supabase → `Order`, prefiriendo el perfil vigente cuando vino joineado. */
+export function rowToOrder(row: OrderRow | OrderWithCustomerRow): Order {
+  const account = 'customer_account' in row ? row.customer_account : null;
+  const accountName = account ? `${account.nombre} ${account.apellido}`.trim() : '';
+
   return {
     id: row.id,
     createdAt: row.created_at,
     customer: {
-      name: row.customer_name,
-      phone: row.customer_phone,
+      name: accountName || row.customer_name,
+      phone: account?.telefono || row.customer_phone,
       address: row.customer_address ?? undefined,
+      dni: account?.dni || undefined,
+      accountAddress: account?.direccion || undefined,
     },
     items: row.items as unknown as OrderItem[],
     total: Number(row.total),
