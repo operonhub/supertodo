@@ -12,14 +12,13 @@ export interface CheckoutInfo {
   delivery: DeliveryMode;
   /** Sólo se usa (y se exige) cuando `delivery === 'reparto'`. */
   address?: string;
+  notes?: string;
 }
 
 /**
- * Id corto y legible, generado en el navegador: con la política de Supabase
- * que sólo deja insertar pedidos (sin permiso de `select`), un
- * `.insert().select()` no devolvería la fila creada. Generándolo antes no
- * hace falta releerla — el `Order` que arma esta función ya es la fuente de
- * verdad para el mensaje de WhatsApp.
+ * Id corto y legible, generado en el navegador. No hace falta releer la fila
+ * después del INSERT: el `Order` que arma esta función ya contiene el mismo
+ * snapshot que se persistió y permite navegar directo a su detalle.
  */
 function generarId(): string {
   const marca = Date.now().toString(36);
@@ -27,7 +26,7 @@ function generarId(): string {
   return `${marca}${azar}`.toUpperCase();
 }
 
-/** Reutilizado también por `CartSheet` para la vista previa del mensaje, antes de crear el pedido. */
+/** Congela nombre, precio y promoción de cada producto al crear el pedido. */
 export function buildOrderItems(summary: CartSummary): OrderItem[] {
   return summary.lines.map((line) => ({
     productId: line.product.id,
@@ -43,6 +42,15 @@ export function buildOrderItems(summary: CartSummary): OrderItem[] {
 /** Arma el pedido, lo inserta en Supabase y lo suma al store del panel. */
 export async function createOrder(summary: CartSummary, info: CheckoutInfo): Promise<Order> {
   const ahora = new Date().toISOString();
+  const supabase = createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('Ingresá a tu cuenta antes de enviar el pedido.');
+  }
 
   const order: Order = {
     id: generarId(),
@@ -56,16 +64,15 @@ export async function createOrder(summary: CartSummary, info: CheckoutInfo): Pro
     total: summary.total,
     delivery: info.delivery,
     paymentMethod: info.paymentMethod,
-    // Nace sin confirmar: recién se graba, todavía falta que el cliente
-    // apriete enviar en WhatsApp y no hay forma de saber si lo hace. Lo
-    // confirma el dueño desde el panel cuando ve llegar el mensaje.
-    status: 'sin_confirmar',
+    status: 'nuevo',
     payment: 'falta_pagar',
-    history: [{ status: 'sin_confirmar', at: ahora }],
+    notes: info.notes?.trim() || undefined,
+    history: [{ status: 'nuevo', at: ahora }],
   };
 
-  const supabase = createClient();
-  const { error } = await supabase.from('orders').insert(orderToRow(order));
+  const { error } = await supabase
+    .from('orders')
+    .insert({ ...orderToRow(order), customer_id: user.id });
   if (error) throw new Error(`No se pudo enviar el pedido: ${error.message}`);
 
   addOrderToSnapshot(order);

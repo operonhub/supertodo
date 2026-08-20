@@ -1,4 +1,7 @@
+'use client';
+
 import { MapPinIcon } from '@/components/icons';
+import type { Customer } from '@/hooks/useCustomer';
 import type { BusinessConfig, DeliveryMode, PaymentMethod } from '@/types';
 
 export interface CheckoutValue {
@@ -7,6 +10,7 @@ export interface CheckoutValue {
   paymentMethodId: string;
   delivery: DeliveryMode;
   address: string;
+  notes: string;
 }
 
 export const CHECKOUT_VACÍO: CheckoutValue = {
@@ -15,6 +19,7 @@ export const CHECKOUT_VACÍO: CheckoutValue = {
   paymentMethodId: '',
   delivery: 'retiro',
   address: '',
+  notes: '',
 };
 
 export type CheckoutErrores = Partial<Record<'name' | 'phone' | 'paymentMethodId' | 'address', string>>;
@@ -51,17 +56,23 @@ export function CheckoutFields({
   errors,
   paymentMethods,
   delivery,
+  customer,
 }: {
   value: CheckoutValue;
   onChange: (next: CheckoutValue) => void;
   errors: CheckoutErrores;
   paymentMethods: PaymentMethod[];
   delivery: BusinessConfig['delivery'];
+  /** Perfil obtenido por `useCustomer()` en el panel que contiene el form. */
+  customer: Customer | null;
 }) {
   const set = <K extends keyof CheckoutValue>(campo: K, valor: CheckoutValue[K]) =>
     onChange({ ...value, [campo]: valor });
 
   const disponibles = paymentMethods.filter((m) => m.enabled);
+  const customerName = customer ? `${customer.nombre} ${customer.apellido}`.trim() : '';
+  const customerPhone = customer?.telefono ?? '';
+  const deliveryAddress = value.address || customer?.direccion || '';
 
   return (
     <div className="mb-4 space-y-3.5 rounded-2xl bg-white p-4 shadow-sm">
@@ -74,8 +85,9 @@ export function CheckoutFields({
         <input
           id="co-nombre"
           className={campoClase}
-          value={value.name}
-          onChange={(e) => set('name', e.target.value)}
+          value={customerName}
+          readOnly
+          aria-readonly="true"
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? 'co-nombre-error' : undefined}
         />
@@ -94,8 +106,9 @@ export function CheckoutFields({
           id="co-tel"
           type="tel"
           className={campoClase}
-          value={value.phone}
-          onChange={(e) => set('phone', e.target.value)}
+          value={customerPhone}
+          readOnly
+          aria-readonly="true"
           aria-invalid={Boolean(errors.phone)}
           aria-describedby={errors.phone ? 'co-tel-error' : undefined}
         />
@@ -167,7 +180,7 @@ export function CheckoutFields({
           <input
             id="co-direccion"
             className={campoClase}
-            value={value.address}
+            value={deliveryAddress}
             onChange={(e) => set('address', e.target.value)}
             aria-invalid={Boolean(errors.address)}
             aria-describedby={errors.address ? 'co-direccion-error' : undefined}
@@ -179,6 +192,20 @@ export function CheckoutFields({
           )}
         </div>
       )}
+
+      <div>
+        <label htmlFor="co-comentarios" className="mb-1 block text-xs font-semibold text-verde/90">
+          Comentarios <span className="font-medium text-verde/60">(opcional)</span>
+        </label>
+        <textarea
+          id="co-comentarios"
+          rows={3}
+          className={`${campoClase} resize-y`}
+          value={value.notes}
+          onChange={(e) => set('notes', e.target.value)}
+          placeholder="Ej.: tocar timbre, sin reemplazos…"
+        />
+      </div>
     </div>
   );
 }

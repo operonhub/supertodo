@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CheckoutFields, CHECKOUT_VACÍO, validarCheckout, type CheckoutErrores, type CheckoutValue } from '@/components/CheckoutFields';
-import { CloseIcon, WhatsAppIcon } from '@/components/icons';
+import { CustomerAuthModal } from '@/components/CustomerAuthModal';
+import { CloseIcon } from '@/components/icons';
 import { QuantityStepper } from '@/components/QuantityStepper';
+import { useCustomer } from '@/hooks/useCustomer';
 import { useSettings } from '@/hooks/useStores';
-import { buildOrderItems, createOrder } from '@/lib/checkout';
+import { createOrder } from '@/lib/checkout';
 import { formatARS } from '@/lib/currency';
 import { describePromotion, getUnitPrice } from '@/lib/products';
-import { buildOrderMessage, buildWhatsAppUrl } from '@/lib/whatsapp';
 import type { CartSummary } from '@/types';
 
 type CartSheetProps = {
@@ -18,7 +20,7 @@ type CartSheetProps = {
   onIncrement: (productId: string) => void;
   onDecrement: (productId: string) => void;
   onRemove: (productId: string) => void;
-  /** El pedido ya se guardó y se abrió WhatsApp: hay que vaciar el carrito. */
+  /** El pedido ya se guardó: hay que vaciar el carrito persistido. */
   onOrderSent: () => void;
 };
 
@@ -31,13 +33,16 @@ export function CartSheet({
   onRemove,
   onOrderSent,
 }: CartSheetProps) {
+  const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
   const settings = useSettings();
+  const { customer, loading: customerLoading, refresh: refreshCustomer } = useCustomer();
 
   const [checkout, setCheckout] = useState<CheckoutValue>(CHECKOUT_VACÍO);
   const [errores, setErrores] = useState<CheckoutErrores>({});
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   /**
    * El foco entra al panel una sola vez, al abrirlo.
@@ -55,7 +60,9 @@ export function CartSheet({
   // Escape cierra, y mientras está abierto el fondo no scrollea: en el
   // celular, si no se bloquea, el dedo termina moviendo el catálogo de atrás.
   useEffect(() => {
-    if (!open) return;
+    // Cuando está el login encima, su propio modal es el único que responde a
+    // Escape y controla el scroll. Así una tecla no cierra las dos capas.
+    if (!open || authOpen) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -69,7 +76,7 @@ export function CartSheet({
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = previous;
     };
-  }, [open, onClose]);
+  }, [authOpen, open, onClose]);
 
   // Si se vacía el carrito desde adentro, no tiene sentido seguir abierto.
   useEffect(() => {
@@ -81,52 +88,42 @@ export function CartSheet({
   const métodosDisponibles = settings.paymentMethods.filter((m) => m.enabled);
   const métodoElegido = métodosDisponibles.find((m) => m.id === checkout.paymentMethodId);
 
-  const items = buildOrderItems(summary);
-  const mensaje = buildOrderMessage({
-    customer: {
-      name: checkout.name,
-      address: checkout.delivery === 'reparto' ? checkout.address : undefined,
-    },
-    items,
-    total: summary.total,
-    paymentMethod: métodoElegido?.label ?? '',
-    delivery: checkout.delivery,
-  });
-
   async function enviarPedido() {
-    const encontrados = validarCheckout(checkout, métodosDisponibles);
+    if (customerLoading) return;
+    if (!customer) {
+      setErrorEnvio(null);
+      setAuthOpen(true);
+      return;
+    }
+
+    const checkoutCompleto: CheckoutValue = {
+      ...checkout,
+      name: `${customer.nombre} ${customer.apellido}`.trim(),
+      phone: customer.telefono,
+      address: checkout.address || customer.direccion,
+    };
+    const encontrados = validarCheckout(checkoutCompleto, métodosDisponibles);
     setErrores(encontrados);
     if (Object.keys(encontrados).length > 0) return;
-
-    // Se reserva la pestaña ANTES del `await`: Safari bloquea los popups
-    // que se abren después de una espera asíncrona, así que hay que abrirla
-    // en blanco ahora mismo y recién después decidir a dónde apunta.
-    const nuevaVentana = window.open('', '_blank');
 
     setErrorEnvio(null);
     setEnviando(true);
     try {
       const order = await createOrder(summary, {
-        name: checkout.name,
-        phone: checkout.phone,
+        name: checkoutCompleto.name,
+        phone: checkoutCompleto.phone,
         paymentMethod: métodoElegido?.label ?? 'No especificado',
-        delivery: checkout.delivery,
-        address: checkout.address,
+        delivery: checkoutCompleto.delivery,
+        address: checkoutCompleto.address,
+        notes: checkoutCompleto.notes,
       });
-
-      const url = buildWhatsAppUrl(buildOrderMessage(order));
-      if (nuevaVentana) {
-        nuevaVentana.location.href = url;
-      } else {
-        window.location.href = url;
-      }
 
       setCheckout(CHECKOUT_VACÍO);
       setErrores({});
       onOrderSent();
       onClose();
+      router.push(`/cuenta/pedidos/${order.id}`);
     } catch (err) {
-      nuevaVentana?.close();
       setErrorEnvio(err instanceof Error ? err.message : 'No se pudo enviar el pedido. Probá de nuevo.');
     } finally {
       setEnviando(false);
@@ -134,7 +131,8 @@ export function CartSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <>
+      <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div
         className="animate-fade-in absolute inset-0 bg-verde-dark/50"
         onClick={onClose}
@@ -225,14 +223,8 @@ export function CartSheet({
             errors={errores}
             paymentMethods={settings.paymentMethods}
             delivery={settings.delivery}
+            customer={customer}
           />
-
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-verde/90">
-            Así le llega el mensaje al local
-          </p>
-          <div className="mb-4 rounded-2xl rounded-tl-md bg-[#DCF8C6] px-4 py-3 shadow-sm">
-            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#1f2c24]">{mensaje}</p>
-          </div>
 
           {errorEnvio && (
             <p role="alert" className="mb-3 text-sm font-semibold text-rojo">
@@ -243,24 +235,20 @@ export function CartSheet({
           <button
             type="button"
             onClick={enviarPedido}
-            disabled={enviando}
-            /* Texto verde oscuro y no blanco: el verde de WhatsApp con blanco
-               encima da 1,98:1, muy por debajo del mínimo legible. Así el
-               botón sigue siendo inconfundible y se lee. */
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-wsp py-3.5 text-[15px] font-extrabold text-verde-dark transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={enviando || customerLoading}
+            className="flex w-full items-center justify-center rounded-2xl bg-verde py-3.5 text-[15px] font-extrabold text-white transition-colors hover:bg-verde-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <WhatsAppIcon className="h-5 w-5" />
-            {enviando ? 'Enviando pedido…' : 'Enviar pedido por WhatsApp'}
+            {customerLoading ? 'Cargando cuenta…' : enviando ? 'Enviando pedido…' : 'Enviar pedido'}
           </button>
-
-          {/* El paso que más se pierde: se abre WhatsApp con todo escrito y
-              mucha gente cree que con eso ya está. Sin apretar enviar, al
-              local no le llega nada. */}
-          <p className="mt-2.5 text-center text-[11px] font-semibold text-verde/90">
-            Se abre WhatsApp con el pedido escrito. Acordate de apretar enviar.
-          </p>
         </div>
       </div>
-    </div>
+      </div>
+
+      <CustomerAuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthenticated={refreshCustomer}
+      />
+    </>
   );
 }

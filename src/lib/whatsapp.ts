@@ -1,7 +1,7 @@
-import { BUSINESS, FULL_ADDRESS } from '@/config/business';
+import { BUSINESS } from '@/config/business';
 import { formatARS } from '@/lib/currency';
 import { formatDateTime } from '@/lib/dates';
-import type { DeliveryMode, Order, OrderItem, TeamMember } from '@/types';
+import type { DeliveryMode, Order, TeamMember } from '@/types';
 
 const ESTADO_PAGO: Record<Order['payment'], string> = {
   falta_pagar: 'Falta pagar',
@@ -14,63 +14,10 @@ const MODALIDAD: Record<DeliveryMode, string> = {
 };
 
 /**
- * Lo mínimo que necesita el mensaje del cliente. Deliberadamente más chico
- * que `Order`: en el checkout todavía no hay `id` ni `createdAt` (el pedido
- * no se guardó todavía), pero la vista previa ya tiene que mostrar el texto
- * final — así la misma función sirve para la previsualización y para el
- * mensaje real, sin inventar datos que todavía no existen.
- */
-export interface OrderMessageInput {
-  /**
-   * Código del pedido. Falta en la vista previa (todavía no se grabó) y está
-   * en el mensaje que se manda de verdad: es lo que le permite al dueño
-   * cruzar el WhatsApp que le llega con la fila del panel para confirmarlo.
-   */
-  id?: string;
-  customer: { name: string; address?: string };
-  items: OrderItem[];
-  total: number;
-  paymentMethod: string;
-  delivery: DeliveryMode;
-}
-
-/**
- * Redacta el pedido tal como le llega al almacén.
- *
- * El mensaje se arma una sola vez acá: la vista previa que ve el cliente y el
- * texto que viaja a WhatsApp salen de esta misma función, así no pueden
- * diferir.
- */
-export function buildOrderMessage(order: OrderMessageInput): string {
-  const lineas = order.items.map((i) => {
-    // La promo se nombra en la línea: con un 3x2 el subtotal no es cantidad ×
-    // precio, y sin la aclaración el almacén lo lee como un error de cuenta.
-    const promo = i.promotionLabel ? ` [${i.promotionLabel}]` : '';
-    return `• ${i.quantity}x ${i.name} (${i.unit})${promo} — ${formatARS(i.subtotal)}`;
-  });
-
-  const entrega =
-    order.delivery === 'reparto'
-      ? `Envío a domicilio — ${order.customer.address}`
-      : `${BUSINESS.pickup.title} — ${FULL_ADDRESS}`;
-
-  return [
-    `Hola, soy ${order.customer.name} y quiero hacer este pedido:`,
-    '',
-    ...lineas,
-    '',
-    `Total: ${formatARS(order.total)}`,
-    `Pago: ${order.paymentMethod}`,
-    entrega,
-    ...(order.id ? ['', `Pedido #${order.id}`] : []),
-  ].join('\n');
-}
-
-/**
- * Link de WhatsApp con el pedido ya redactado.
+ * Link de WhatsApp para consultas generales del local.
  *
  * Usamos wa.me porque funciona igual en la app del celular y en WhatsApp Web,
- * que es justo lo que necesita un cliente que entra desde un link.
+ * pero el checkout ya no depende de este canal.
  */
 export function buildWhatsAppUrl(message: string): string {
   return `https://wa.me/${BUSINESS.whatsappNumber}?text=${encodeURIComponent(message)}`;

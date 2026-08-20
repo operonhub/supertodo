@@ -170,8 +170,8 @@ export interface BusinessConfig {
   };
   /**
    * Zona de reparto a domicilio. Es sólo un aviso de texto en el checkout,
-   * no una validación real: el dueño revisa cada pedido a mano por WhatsApp
-   * antes de prepararlo, así que alcanza con aclarar el radio de cobertura.
+   * no una validación geográfica real: el equipo revisa el domicilio del
+   * pedido antes de prepararlo.
    */
   delivery: {
     radiusKm: number;
@@ -228,12 +228,9 @@ export interface TeamMember {
  * puede estar entregado y sin pagar (fiado, que en un almacén de barrio pasa
  * todo el tiempo), o pagado por transferencia y todavía sin preparar.
  *
- * `sin_confirmar` es el estado en que nace todo pedido hecho desde la tienda.
- * El pedido se graba antes de abrir WhatsApp, pero mandar el mensaje lo tiene
- * que hacer el cliente a mano — y no hay forma de enterarse si lo hizo. Hasta
- * que el WhatsApp llegue al local, el pedido existe pero no es una venta: no
- * suma a los números del día ni se prepara. Lo confirma el dueño cuando ve
- * llegar el mensaje.
+ * `sin_confirmar` se conserva para pedidos legacy creados por el checkout de
+ * WhatsApp. Los pedidos de clientes registrados nacen en `nuevo` porque el
+ * INSERT en la plataforma ya constituye el envío al local.
  */
 export type OrderStatus =
   | 'sin_confirmar'

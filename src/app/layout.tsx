@@ -14,7 +14,7 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: `${BUSINESS.name} — Pedidos por WhatsApp`,
+  title: `${BUSINESS.name} — Pedidos online`,
   description: `Mirá las ofertas de ${BUSINESS.name}, armá tu pedido y lo retirás por ${FULL_ADDRESS}.`,
   manifest: '/manifest.webmanifest',
   icons: {

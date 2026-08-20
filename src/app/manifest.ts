@@ -8,7 +8,7 @@ import { BUSINESS } from '@/config/business';
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${BUSINESS.name} — Pedidos por WhatsApp`,
+    name: `${BUSINESS.name} — Pedidos online`,
     short_name: BUSINESS.name,
     start_url: '/',
     display: 'standalone',

@@ -33,7 +33,7 @@ export const BUSINESS: BusinessConfig = {
 
   pickup: {
     title: 'Retiro por el local',
-    detail: 'Preparamos tu pedido y te avisamos por WhatsApp cuando está listo.',
+    detail: 'Preparamos tu pedido y te avisamos en tu cuenta cuando está listo.',
   },
 
   delivery: {
@@ -64,7 +64,7 @@ export const BUSINESS: BusinessConfig = {
   /** Se activan/desactivan desde Configuración. Débito/crédito arranca apagado. */
   paymentMethods: [
     { id: 'efectivo', label: 'Efectivo', enabled: true },
-    { id: 'transferencia', label: 'Transferencia / MODO', enabled: true },
+    { id: 'online', label: 'Online', enabled: true },
     { id: 'tarjeta', label: 'Débito o crédito', enabled: false },
   ],
 
