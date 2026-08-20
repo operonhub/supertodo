@@ -19,6 +19,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_config: {
         Row: {
           data: Json
@@ -37,10 +49,44 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          apellido: string
+          created_at: string
+          direccion: string
+          dni: string
+          email: string
+          id: string
+          nombre: string
+          telefono: string
+        }
+        Insert: {
+          apellido: string
+          created_at?: string
+          direccion: string
+          dni: string
+          email: string
+          id: string
+          nombre: string
+          telefono: string
+        }
+        Update: {
+          apellido?: string
+          created_at?: string
+          direccion?: string
+          dni?: string
+          email?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
           customer_address: string | null
+          customer_id: string | null
           customer_name: string
           customer_phone: string
           delivery: string
@@ -56,6 +102,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_address?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_phone: string
           delivery: string
@@ -71,6 +118,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_address?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_phone?: string
           delivery?: string
@@ -83,7 +131,15 @@ export type Database = {
           status?: string
           total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       precios_claros_productos: {
         Row: {
@@ -168,7 +224,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -295,3 +351,9 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
