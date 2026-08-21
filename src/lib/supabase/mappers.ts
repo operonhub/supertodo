@@ -73,6 +73,7 @@ export function rowToOrder(row: OrderRow | OrderWithCustomerRow): Order {
   return {
     id: row.id,
     createdAt: row.created_at,
+    customerId: row.customer_id ?? undefined,
     customer: {
       name: accountName || row.customer_name,
       phone: account?.telefono || row.customer_phone,

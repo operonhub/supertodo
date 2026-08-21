@@ -278,6 +278,8 @@ export interface Order {
   /** Número visible para el dueño y el cliente: "1042". */
   id: string;
   createdAt: string;
+  /** Cuenta dueña del pedido; falta sólo en pedidos legacy. */
+  customerId?: string;
   customer: {
     name: string;
     phone: string;

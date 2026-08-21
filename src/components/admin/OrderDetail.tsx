@@ -1,5 +1,6 @@
 'use client';
 
+import { OrderChat } from '@/components/admin/OrderChat';
 import { Badge, DeleteButton, Modal, selectClass } from '@/components/admin/ui';
 import { AlertIcon, WhatsAppIcon } from '@/components/icons';
 import { useSettings } from '@/hooks/useStores';
@@ -211,6 +212,8 @@ export function OrderDetail({
           <p className="text-sm text-amber-900">{order.notes}</p>
         </section>
       )}
+
+      {order.customerId && <OrderChat orderId={order.id} />}
 
       <section className="mb-4 grid gap-3 sm:grid-cols-2">
         <div>

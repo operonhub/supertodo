@@ -82,6 +82,41 @@ export type Database = {
         }
         Relationships: []
       }
+      order_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: number
+          order_id: string
+          sender_role: string
+        }
+        Insert: {
+          author_id?: string
+          body: string
+          created_at?: string
+          id?: never
+          order_id: string
+          sender_role: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: never
+          order_id?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
