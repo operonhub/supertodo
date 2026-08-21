@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useSyncExternalStore } from 'react';
 import { CustomerAuthModal } from '@/components/CustomerAuthModal';
 import { CloseIcon } from '@/components/icons';
@@ -45,9 +46,18 @@ export function CustomerAccountPrompt() {
       <aside className="fixed bottom-24 right-4 z-20 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-verde/10">
         <p className="text-xs font-semibold text-verde/90">Cuenta de cliente</p>
         <div className="mt-1 flex items-center gap-3">
-          <p className="max-w-40 truncate text-sm font-extrabold text-verde-dark">
+          <Link
+            href="/cuenta"
+            className="max-w-40 truncate text-sm font-extrabold text-verde-dark hover:underline"
+          >
             {customer.nombre} {customer.apellido}
-          </p>
+          </Link>
+          <Link
+            href="/cuenta"
+            className="rounded-full bg-dorado-soft px-3 py-1.5 text-xs font-extrabold text-dorado-dark transition-colors hover:bg-dorado/25"
+          >
+            Mis pedidos
+          </Link>
           <button
             type="button"
             onClick={logout}
