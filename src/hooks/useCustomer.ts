@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { forgetSessionPreference, sessionEndedWithBrowser } from '@/lib/sessionPreference';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables } from '@/lib/supabase/database.types';
 
@@ -55,8 +56,19 @@ export function useCustomer() {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) void loadCustomer(data.session);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!active) return;
+
+      // Antes de dar la sesión por buena: si el cliente pidió no mantenerla y
+      // el navegador se cerró desde entonces, esta sesión ya no vale.
+      if (data.session && sessionEndedWithBrowser()) {
+        forgetSessionPreference();
+        await supabase.auth.signOut();
+        if (active) void loadCustomer(null);
+        return;
+      }
+
+      void loadCustomer(data.session);
     });
 
     const {
@@ -84,6 +96,8 @@ export function useCustomer() {
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw new Error(`No se pudo cerrar la sesión: ${error.message}`);
+
+    forgetSessionPreference();
     await loadCustomer(null);
   }, [loadCustomer, supabase]);
 

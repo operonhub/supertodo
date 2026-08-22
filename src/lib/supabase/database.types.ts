@@ -260,6 +260,7 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      cancel_order: { Args: { p_order_id: string }; Returns: Tables<'orders'> }
     }
     Enums: {
       [_ in never]: never

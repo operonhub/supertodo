@@ -5,7 +5,6 @@ import { CartBar } from '@/components/CartBar';
 import { CartSheet } from '@/components/CartSheet';
 import { CategoryChips } from '@/components/CategoryChips';
 import { CategorySidebar } from '@/components/CategorySidebar';
-import { CustomerAccountPrompt } from '@/components/CustomerAccountPrompt';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { OfferBanner } from '@/components/OfferBanner';
 import { ProductGrid } from '@/components/ProductGrid';
@@ -99,7 +98,6 @@ export default function CatalogoPage() {
         />
 
         <InstallPrompt />
-        <CustomerAccountPrompt />
 
         {/* Arriba de las dos columnas: es un aviso de toda la tienda, no algo
             de la grilla, y al costado de la barra lateral se leería como si

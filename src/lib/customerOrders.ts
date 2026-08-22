@@ -26,6 +26,37 @@ export async function fetchCustomerOrder(orderId: string): Promise<Order | null>
   return data ? rowToOrder(data) : null;
 }
 
+/**
+ * Errores del RPC `cancel_order()` que el cliente puede entender.
+ *
+ * `PT005` no distingue entre un pedido inexistente y uno de otra cuenta: la
+ * base contesta lo mismo en los dos casos a propósito, y el mensaje lo respeta.
+ */
+const ERRORES_DE_CANCELACIÓN: Record<string, string> = {
+  PT004: 'El pedido ya entró en preparación, así que no se puede cancelar solo. Escribinos por el chat y lo vemos.',
+  PT005: 'No encontramos ese pedido en tu cuenta.',
+};
+
+/**
+ * Cancela un pedido propio.
+ *
+ * Va por RPC y no por un UPDATE directo porque el cliente no tiene —ni debe
+ * tener— permiso para escribir en `orders`: la base valida que el pedido sea
+ * suyo y que todavía no lo hayan empezado a preparar.
+ */
+export async function cancelOrder(orderId: string): Promise<Order> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('cancel_order', { p_order_id: orderId });
+
+  if (error) {
+    throw new Error(
+      ERRORES_DE_CANCELACIÓN[error.code] ?? `No se pudo cancelar el pedido: ${error.message}`,
+    );
+  }
+
+  return rowToOrder(data as OrderRow);
+}
+
 function subscribeToOrderUpdates(
   column: 'customer_id' | 'id',
   value: string,

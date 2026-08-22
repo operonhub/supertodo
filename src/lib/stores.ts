@@ -7,10 +7,15 @@ import type { BusinessConfig, Order, Product } from '@/types';
 /**
  * Todo vive en Supabase (productos, configuración, pedidos).
  *
- * Sin tiempo real: cada store trae los datos una vez al montar y se
- * actualiza a mano después de cada escritura propia. Si el dueño edita un
- * precio en su computadora, un cliente que ya tenía la tienda abierta no lo
- * ve hasta refrescar.
+ * Productos y configuración no tienen tiempo real: se traen una vez al montar
+ * y se actualizan a mano después de cada escritura propia. Si el dueño edita
+ * un precio, un cliente que ya tenía la tienda abierta no lo ve hasta
+ * refrescar.
+ *
+ * Los pedidos SÍ: `lib/adminRealtime.ts` conecta el canal del panel y empuja
+ * los cambios por `applyRealtimeOrder`. Es la única forma de que al dueño le
+ * llegue un pedido sin tener que venir a mirar, ahora que el checkout dejó de
+ * abrir WhatsApp.
  */
 
 type Listener = () => void;
@@ -47,6 +52,16 @@ async function fetchProducts() {
 
   productSnapshot = data.map(rowToProduct);
   emitProducts();
+}
+
+/**
+ * Relee el catálogo desde la base.
+ *
+ * La usa el checkout cuando la base rechaza un pedido por precios cambiados:
+ * el carrito se recalcula solo y el cliente ve la cuenta nueva sin recargar.
+ */
+export function refreshProducts(): Promise<void> {
+  return fetchProducts();
 }
 
 export const productStore = {
@@ -206,6 +221,58 @@ export const orderStore = {
 export function addOrderToSnapshot(order: Order) {
   orderSnapshot = [order, ...orderSnapshot];
   emitOrders();
+}
+
+/**
+ * Mete en la lista un pedido que cambió en la base, avisado por Realtime.
+ *
+ * Relee la fila en vez de usar el payload del evento: `postgres_changes` manda
+ * la fila cruda de `orders`, sin el embed de `customers`. Confiar en el payload
+ * dejaría los pedidos nuevos sin DNI ni domicilio de la cuenta justo en el
+ * detalle que el dueño abre para preparar el envío.
+ *
+ * Devuelve el pedido leído —o `null` si ya no está o no se pudo leer— para que
+ * quien escucha decida si además hay que avisar.
+ */
+export async function applyRealtimeOrder(id: string): Promise<Order | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .select(ORDER_WITH_CUSTOMER_SELECT)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`No se pudo leer el pedido ${id}:`, error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  const pedido = rowToOrder(data);
+  const yaEstaba = orderSnapshot.some((p) => p.id === id);
+
+  // Los pedidos nuevos entran ordenados y no simplemente al principio: si la
+  // pestaña estuvo dormida, pueden llegar varios juntos y desordenados.
+  orderSnapshot = yaEstaba
+    ? orderSnapshot.map((p) => (p.id === id ? pedido : p))
+    : [pedido, ...orderSnapshot].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+  ordersActualizadoEn = Date.now();
+  emitOrders();
+  return pedido;
+}
+
+/** Saca de la lista un pedido borrado desde otra sesión del panel. */
+export function dropOrderFromSnapshot(id: string) {
+  if (!orderSnapshot.some((p) => p.id === id)) return;
+
+  orderSnapshot = orderSnapshot.filter((p) => p.id !== id);
+  emitOrders();
+}
+
+/** `true` si el pedido ya está en la lista: distingue un alta de un eco. */
+export function knowsOrder(id: string): boolean {
+  return orderSnapshot.some((p) => p.id === id);
 }
 
 async function patchOrder(id: string, cambios: TablesUpdate<'orders'>): Promise<Order> {

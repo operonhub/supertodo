@@ -134,6 +134,26 @@ export function filterOrders(orders: Order[], filters: OrderFilters): Order[] {
  */
 export const estáConfirmado = (order: Order) => order.status !== 'sin_confirmar';
 
+/**
+ * Pedidos que todavía esperan que alguien del local haga algo.
+ *
+ * `preparando` no cuenta: ya lo agarró alguien. Lo que cuenta es lo que entró
+ * y nadie tocó — que es exactamente lo que el contador del sidebar tiene que
+ * gritar cuando el dueño está en otra pantalla.
+ */
+export const esperaAtención = (order: Order) =>
+  order.status === 'nuevo' || order.status === 'sin_confirmar';
+
+/**
+ * Estados en los que el cliente todavía puede cancelar por su cuenta.
+ *
+ * Espeja la regla de `cancel_order()` en la base, que es la que manda. Si
+ * alguna vez se corren, lo peor que pasa es que el botón aparezca y la base
+ * conteste que ya está en preparación — el mensaje ya está contemplado.
+ */
+export const puedeCancelarlo = (order: Order) =>
+  order.status === 'nuevo' || order.status === 'sin_confirmar';
+
 /** Números del día para el Resumen. */
 export function summarizeToday(orders: Order[]) {
   const deHoy = orders.filter((o) => isToday(o.createdAt));
