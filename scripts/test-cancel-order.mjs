@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const AQUÍ = dirname(fileURLToPath(import.meta.url));
 const MIGRACIÓN = readFileSync(
-  join(AQUÍ, '..', 'supabase', 'migrations', '20260821140000_phase_g_customer_cancel_order.sql'),
+  join(AQUÍ, '..', 'supabase', 'migrations', '20260822010157_phase_g_customer_cancel_order.sql'),
   'utf8',
 );
 
