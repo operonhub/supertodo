@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import {
   ClipboardIcon,
   ExternalIcon,
@@ -15,7 +16,9 @@ import {
 } from '@/components/icons';
 import { Logo } from '@/components/Logo';
 import { OperonBadge } from '@/components/OperonBadge';
-import { useSettings } from '@/hooks/useStores';
+import { useChatTails, useOrders, useSettings } from '@/hooks/useStores';
+import { pendingChatOrderIds } from '@/lib/orderChatStore';
+import { esperaAtención } from '@/lib/orders';
 import { createClient } from '@/lib/supabase/client';
 
 type Item = {
@@ -41,10 +44,37 @@ const ITEMS: Item[] = [
  * una fila con scroll horizontal, para que en el celular no se coma la pantalla
  * pero siga estando todo a un toque.
  */
+/**
+ * Un solo número, un solo significado: pedidos que te esperan.
+ *
+ * Se suman dos motivos distintos —nadie lo atendió todavía, o el cliente
+ * escribió y nadie le contestó— pero se cuentan por pedido, no por motivo:
+ * dos badges compitiendo en el mismo ítem obligan a leer cuál es cuál, y en
+ * el celular el sidebar es una fila angosta donde no entran.
+ */
+function usePedidosPendientes(): number {
+  const orders = useOrders();
+  const tails = useChatTails();
+
+  return useMemo(() => {
+    const pendientes = new Set(orders.filter(esperaAtención).map((o) => o.id));
+    const conocidos = new Set(orders.map((o) => o.id));
+
+    for (const id of pendingChatOrderIds(tails)) {
+      // Un chat huérfano (pedido borrado) no puede inflar el contador con algo
+      // que el dueño no va a poder abrir desde ningún lado.
+      if (conocidos.has(id)) pendientes.add(id);
+    }
+
+    return pendientes.size;
+  }, [orders, tails]);
+}
+
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const settings = useSettings();
+  const pendientes = usePedidosPendientes();
 
   async function cerrarSesión() {
     const supabase = createClient();
@@ -70,6 +100,7 @@ export function AdminSidebar() {
         {ITEMS.map(({ href, label, Icon }) => {
           // `/admin` sólo coincide exacto; el resto también con sus subrutas.
           const activo = href === '/admin' ? pathname === href : pathname.startsWith(href);
+          const badge = href === '/admin/pedidos' && pendientes > 0 ? pendientes : null;
 
           return (
             <Link
@@ -82,6 +113,14 @@ export function AdminSidebar() {
             >
               <Icon className="h-4 w-4" />
               {label}
+              {badge !== null && (
+                /* Dorado y no rojo: es trabajo esperando, no una falla. El rojo
+                   del sistema está reservado para descuentos y errores. */
+                <span className="ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-dorado px-1.5 text-[11px] font-extrabold text-verde-dark">
+                  {badge}
+                  <span className="sr-only"> pedidos esperando</span>
+                </span>
+              )}
             </Link>
           );
         })}

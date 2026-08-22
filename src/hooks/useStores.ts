@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { orderChatStore, type ChatTails } from '@/lib/orderChatStore';
 import { orderStore, productStore, settingsStore } from '@/lib/stores';
 import type { BusinessConfig, Order, Product } from '@/types';
 
@@ -39,6 +40,21 @@ export function useOrdersUpdatedAt(): number | null {
     orderStore.subscribe,
     orderStore.getUpdatedAt,
     orderStore.getServerUpdatedAt,
+  );
+}
+
+/**
+ * Quién habló último en el chat de cada pedido.
+ *
+ * Se lee acá y no dentro del chat de cada pedido porque el contador del
+ * sidebar tiene que saber que hay una conversación esperando aunque el dueño
+ * esté en otra pantalla del panel.
+ */
+export function useChatTails(): ChatTails {
+  return useSyncExternalStore(
+    orderChatStore.subscribe,
+    orderChatStore.getSnapshot,
+    orderChatStore.getServerSnapshot,
   );
 }
 
