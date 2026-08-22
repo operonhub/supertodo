@@ -8,10 +8,83 @@ import { CustomerPageHeader } from '@/components/CustomerPageHeader';
 import { OrderStatusTracker } from '@/components/OrderStatusTracker';
 import { useCustomer } from '@/hooks/useCustomer';
 import { formatARS } from '@/lib/currency';
-import { fetchCustomerOrder, subscribeToCustomerOrder } from '@/lib/customerOrders';
+import { cancelOrder, fetchCustomerOrder, subscribeToCustomerOrder } from '@/lib/customerOrders';
 import { formatDateTime } from '@/lib/dates';
-import { DELIVERY_LABEL, PAYMENT_LABEL } from '@/lib/orders';
+import { DELIVERY_LABEL, PAYMENT_LABEL, puedeCancelarlo } from '@/lib/orders';
 import type { Order } from '@/types';
+
+/**
+ * Cancelar en dos toques.
+ *
+ * Sin la confirmación, un pulgar en el celular tira abajo un pedido real. Y la
+ * pregunta dice qué hacer si se arrepintió tarde, porque el caso más común no
+ * es "me equivoqué" sino "cambié de idea cuando ya lo estaban armando".
+ */
+function CancelOrderButton({ order, onCancelled }: { order: Order; onCancelled: (o: Order) => void }) {
+  const [preguntando, setPreguntando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirmar() {
+    setError(null);
+    setCancelando(true);
+    try {
+      onCancelled(await cancelOrder(order.id));
+      setPreguntando(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo cancelar el pedido.');
+    } finally {
+      setCancelando(false);
+    }
+  }
+
+  if (!preguntando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setPreguntando(true)}
+        className="w-full rounded-2xl border border-rojo/25 bg-white px-5 py-3 text-sm font-bold text-rojo transition-colors hover:bg-rojo/5"
+      >
+        Cancelar este pedido
+      </button>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-rojo/25 bg-rojo/5 p-4">
+      <p className="text-sm font-extrabold text-rojo">¿Cancelamos el pedido #{order.id}?</p>
+      <p className="mt-1 text-xs font-medium text-rojo/90">
+        No se puede deshacer. Si querés cambiar algo en vez de cancelarlo, escribinos por el
+        chat de acá abajo.
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={confirmar}
+          disabled={cancelando}
+          className="flex-1 rounded-xl bg-rojo px-5 py-2.5 text-sm font-extrabold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {cancelando ? 'Cancelando…' : 'Sí, cancelar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPreguntando(false)}
+          disabled={cancelando}
+          className="rounded-xl border border-verde/20 bg-white px-5 py-2.5 text-sm font-bold text-verde transition-colors hover:bg-verde/5 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          No, dejarlo
+        </button>
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-2 text-xs font-semibold text-rojo">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}
 
 function CustomerOrderDetail({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<Order | null>();
@@ -104,6 +177,8 @@ function CustomerOrderDetail({ orderId }: { orderId: string }) {
       )}
 
       <OrderStatusTracker status={order.status} />
+
+      {puedeCancelarlo(order) && <CancelOrderButton order={order} onCancelled={setOrder} />}
 
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl bg-white p-4 shadow-card">

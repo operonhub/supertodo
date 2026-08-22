@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "ingest:precios-claros": "node --env-file=.env.local scripts/ingest-precios-claros.mjs",
-    "test:sql": "node scripts/test-pricing.mjs"
+    "test:sql": "node scripts/test-pricing.mjs && node scripts/test-cancel-order.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
