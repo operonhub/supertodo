@@ -1,4 +1,4 @@
-import { addOrderToSnapshot } from '@/lib/stores';
+import { addOrderToSnapshot, refreshProducts } from '@/lib/stores';
 import { describePromotion } from '@/lib/products';
 import { orderToRow } from '@/lib/supabase/mappers';
 import { createClient } from '@/lib/supabase/client';
@@ -25,6 +25,28 @@ function generarId(): string {
   const azar = Math.random().toString(36).slice(2, 6);
   return `${marca}${azar}`.toUpperCase();
 }
+
+/**
+ * Errores del trigger `price_order()` que el cliente puede entender y resolver.
+ *
+ * La base es la que manda con los precios: acá sólo se traduce, y en los dos
+ * casos que dependen del catálogo se lo vuelve a leer para que el carrito
+ * muestre la cuenta nueva antes de que el cliente reintente.
+ */
+const ERRORES_DE_PRECIO: Record<string, { mensaje: string; releerCatálogo: boolean }> = {
+  PT001: {
+    mensaje: 'Los precios cambiaron mientras armabas el pedido. Mirá el total actualizado y volvé a enviarlo.',
+    releerCatálogo: true,
+  },
+  PT002: {
+    mensaje: 'Uno de los productos ya no está disponible. Lo sacamos del catálogo: revisá el carrito.',
+    releerCatálogo: true,
+  },
+  PT003: {
+    mensaje: 'Hay algo raro en las cantidades del pedido. Revisá el carrito y probá de nuevo.',
+    releerCatálogo: false,
+  },
+};
 
 /** Congela nombre, precio y promoción de cada producto al crear el pedido. */
 export function buildOrderItems(summary: CartSummary): OrderItem[] {
@@ -70,11 +92,32 @@ export async function createOrder(summary: CartSummary, info: CheckoutInfo): Pro
     history: [{ status: 'nuevo', at: ahora }],
   };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
-    .insert({ ...orderToRow(order), customer_id: user.id });
-  if (error) throw new Error(`No se pudo enviar el pedido: ${error.message}`);
+    .insert({ ...orderToRow(order), customer_id: user.id })
+    .select('items, total')
+    .single();
 
-  addOrderToSnapshot(order);
-  return order;
+  if (error) {
+    const conocido = ERRORES_DE_PRECIO[error.code];
+    if (!conocido) throw new Error(`No se pudo enviar el pedido: ${error.message}`);
+
+    if (conocido.releerCatálogo) await refreshProducts().catch(() => {});
+    throw new Error(conocido.mensaje);
+  }
+
+  /*
+   * Se relee lo que quedó guardado en vez de confiar en el objeto local: el
+   * trigger `price_order()` reescribe items y total desde `products`, así que
+   * la fila puede diferir de lo que se mandó. Sin esto, el detalle al que se
+   * navega justo después mostraría la versión del navegador y no la real.
+   */
+  const guardado: Order = {
+    ...order,
+    items: data.items as unknown as OrderItem[],
+    total: Number(data.total),
+  };
+
+  addOrderToSnapshot(guardado);
+  return guardado;
 }
