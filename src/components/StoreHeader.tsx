@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountMenu } from '@/components/AccountMenu';
 import { CloseIcon, SearchIcon, StarIcon } from '@/components/icons';
 import { Logo } from '@/components/Logo';
 import { BUSINESS } from '@/config/business';
@@ -10,27 +11,39 @@ type StoreHeaderProps = {
 };
 
 /**
- * Header fijo: logo, reputación y buscador.
+ * Header fijo: logo, reputación, cuenta y buscador.
  *
  * Queda pegado arriba porque en un catálogo largo buscar es la salida más
  * rápida, y en el celular volver al tope para tipear es justo la fricción que
  * hace abandonar el pedido.
+ *
+ * La cuenta va acá y no flotando sobre el catálogo: es el lugar donde se la
+ * busca por costumbre, y así no compite por atención con la barra del carrito,
+ * que es el único CTA que tiene que pesar en esta pantalla.
  */
 export function StoreHeader({ query, onQueryChange }: StoreHeaderProps) {
   return (
     <header className="sticky top-0 z-30 bg-verde px-4 pb-3 pt-4 shadow-md">
       <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <Logo animated className="h-12 w-auto" />
+          <Logo animated className="h-12 w-auto shrink-0" />
 
-          <div className="text-right">
-            {BUSINESS.rating && (
-              <span className="flex items-center justify-end gap-1 text-[11px] font-semibold text-white/80">
-                <StarIcon className="h-3 w-3 text-dorado" />
-                {BUSINESS.rating.toLocaleString('es-AR')} · {BUSINESS.address.neighborhood}
+          <div className="flex min-w-0 items-center gap-3">
+            {/* La reputación sobrevive en mobile porque es la prueba social que
+                sostiene el header; el lema, que repite el barrio, se va. */}
+            <div className="min-w-0 text-right">
+              {BUSINESS.rating && (
+                <span className="flex items-center justify-end gap-1 whitespace-nowrap text-[11px] font-semibold text-white/80">
+                  <StarIcon className="h-3 w-3 shrink-0 text-dorado" />
+                  {BUSINESS.rating.toLocaleString('es-AR')} · {BUSINESS.address.neighborhood}
+                </span>
+              )}
+              <span className="hidden truncate text-[11px] text-white/75 sm:block">
+                {BUSINESS.tagline}
               </span>
-            )}
-            <span className="text-[11px] text-white/75">{BUSINESS.tagline}</span>
+            </div>
+
+            <AccountMenu />
           </div>
         </div>
 

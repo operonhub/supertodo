@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Field, Modal, inputClass } from '@/components/admin/ui';
+import { rememberSession } from '@/lib/sessionPreference';
 import { createClient } from '@/lib/supabase/client';
 
 type AuthMode = 'login' | 'signup';
@@ -44,6 +45,10 @@ export function CustomerAuthModal({
   onAuthenticated?: () => void | Promise<void>;
 }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  // Marcado por default: en un almacén de barrio se pide desde el mismo
+  // celular casi siempre, y tener que escribir la contraseña en cada compra
+  // es exactamente la fricción que hace que no se vuelva a usar la tienda.
+  const [mantenerSesión, setMantenerSesión] = useState(true);
   const [form, setForm] = useState<AuthForm>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -85,6 +90,11 @@ export function CustomerAuthModal({
     const supabase = createClient();
 
     try {
+      // Se registra ANTES de autenticar: `signIn` dispara `onAuthStateChange`
+      // y el arranque de `useCustomer` tiene que encontrar la preferencia ya
+      // escrita, no un instante después.
+      rememberSession(mantenerSesión);
+
       if (mode === 'login') {
         const { error: loginError } = await supabase.auth.signInWithPassword({
           email,
@@ -252,6 +262,22 @@ export function CustomerAuthModal({
             {success}
           </p>
         )}
+
+        <label className="mb-4 flex items-start gap-2.5 rounded-xl bg-verde-soft px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={mantenerSesión}
+            onChange={(event) => setMantenerSesión(event.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-verde"
+          />
+          <span className="text-xs font-semibold leading-snug text-verde-dark">
+            Mantener la sesión iniciada
+            <span className="mt-0.5 block font-medium text-verde/80">
+              Si lo destildás, vas a tener que ingresar de nuevo la próxima vez que abras
+              el navegador.
+            </span>
+          </span>
+        </label>
 
         <button
           type="submit"
